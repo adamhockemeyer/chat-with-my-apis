@@ -1,0 +1,92 @@
+name: Bicep Build
+
+on:
+    pull_request:
+        branches:
+            - main
+        types:
+            - opened
+            - synchronize
+    workflow_dispatch:
+
+defaults:
+    run:
+        working-directory: ./infra/bicep
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+            pull-requests: write
+        env:
+            #Create this Azure resource group if it doesn't exist
+            RESOURCE_GROUP_NAME: chat-with-my-apis-rg
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Set up Azure CLI
+              uses: azure/login@v2
+              with:
+                creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+            - name: Bicep Build
+              run: |
+                    az bicep build --file main.bicep
+
+            - name: Bicep What-if
+              id: bicep
+              run: |
+                    az deployment group what-if --resource-group ${{env.RESOURCE_GROUP_NAME}} --template-file main.bicep --name chat-with-my-apis > whatif-output.txt
+                    echo "what_if_result<<EOF" >> $GITHUB_OUTPUT
+                    cat whatif-output.txt >> $GITHUB_OUTPUT
+                    echo "EOF" >> $GITHUB_OUTPUT
+
+            - name: Comment PR
+              if: github.event_name == 'pull_request'
+              uses: actions/github-script@v7
+              env:
+                BICEPPLAN: "bicep\n${{ steps.bicep.outputs.what_if_result }}"
+              with:
+                github-token: ${{ secrets.GITHUB_TOKEN }}
+                script: |
+                    // 1. Retrieve existing bot comments for the PR
+                    const { data: comments } = await github.rest.issues.listComments({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        issue_number: context.issue.number,
+                    })
+                    const botComment = comments.find(comment => {
+                        return comment.user.type === 'Bot' && comment.body.includes('Az Deployment What-If')
+                    })
+
+                    // 2. Prepare format of the comment
+                    const output = `#### Az Deployment What-If 📖\`${{ steps.bicep.outcome }}\`
+
+                    <details><summary>Show Plan</summary>
+
+                    \`\`\`\n
+                    ${process.env.BICEPPLAN}
+                    \`\`\`
+
+                    </details>
+
+                    *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ github.workspace }}\`, Workflow: \`${{ github.workflow }}\`*`;
+
+                    // 3. If we have a comment, update it, otherwise create a new one
+                    if (botComment) {
+                        github.rest.issues.updateComment({
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        comment_id: botComment.id,
+                        body: output
+                        })
+                    } else {
+                        github.rest.issues.createComment({
+                        issue_number: context.issue.number,
+                        owner: context.repo.owner,
+                        repo: context.repo.repo,
+                        body: output
+                        })
+                    }

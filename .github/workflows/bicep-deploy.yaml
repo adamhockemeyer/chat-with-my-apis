@@ -1,0 +1,32 @@
+name: Bicep Deploy
+
+on:
+    push:
+        branches:
+            - main
+    workflow_dispatch:
+
+defaults:
+    run:
+        working-directory: ./infra/bicep
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        env:
+            #Create this Azure resource group if it doesn't exist
+            RESOURCE_GROUP_NAME: chat-with-my-apis-rg
+        steps:
+            - name: Checkout
+              uses: actions/checkout@v4
+
+            - name: Set up Azure CLI
+              uses: azure/login@v2
+              with:
+                creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+            - name: Deploy Bicep file
+              run: |
+                    az deployment group create \
+                        --resource-group ${{ env.RESOURCE_GROUP_NAME }} \
+                        --template-file main.bicep
