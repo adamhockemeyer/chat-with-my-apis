@@ -11,7 +11,6 @@ from semantic_kernel.contents.utils.author_role import AuthorRole
 
 from app.models.chat_input import ChatInput
 from app.models.chat_create_thread_input import ChatCreateThreadInput
-from api.app.plugins.apim_plugin import ApimPlugin
 from app.agents.apim_agent import create_apim_agent
 from app.config import get_settings
 
@@ -25,16 +24,16 @@ router = APIRouter()
 async def post_create_agent():
     kernel = Kernel()
 
-    kubernetes_agent = await create_apim_agent(kernel)
+    apim_agent = await create_apim_agent(kernel)
 
-    return {"agent_id": kubernetes_agent.assistant.id}
+    return {"agent_id": apim_agent.assistant.id}
 
 @tracer.start_as_current_span(name="create_thread")
 @router.post("/create_thread")
 async def post_create_thread(agent_input: ChatCreateThreadInput):
     kernel = Kernel()
 
-    kubernetes_agent = await AzureAssistantAgent.retrieve(
+    apim_agent = await AzureAssistantAgent.retrieve(
         id=agent_input.agent_id,
         kernel=kernel,
         endpoint=get_settings().azure_openai_endpoint,
@@ -42,10 +41,10 @@ async def post_create_thread(agent_input: ChatCreateThreadInput):
         api_version=get_settings().azure_openai_api_version
         )
 
-    if not kubernetes_agent:
+    if not apim_agent:
         return {"error": f"Agent with ID {agent_input.agent_id} not found"}
 
-    thread_id = await kubernetes_agent.create_thread()
+    thread_id = await apim_agent.create_thread()
 
     return {"thread_id": thread_id}
 
@@ -58,22 +57,19 @@ async def build_chat_results(chat_input: ChatInput):
     with tracer.start_as_current_span(name="build_chat_results"):
         kernel = Kernel()
 
-        kubernetes_agent = await AzureAssistantAgent.retrieve(
+        apim_agent = await AzureAssistantAgent.retrieve(
             id=chat_input.agent_id,
             kernel=kernel,
             endpoint=get_settings().azure_openai_endpoint,
             api_key=get_settings().azure_openai_api_key,
             api_version=get_settings().azure_openai_api_version)
 
-        if not kubernetes_agent:
+        if not apim_agent:
             yield f"Agent with ID {chat_input.agent_id} not found"
 
-        kubernetes_rest_api_plugin = ApimPlugin()
-        kernel.add_plugin(kubernetes_rest_api_plugin, "kubernetes_rest_api")
-
-        await kubernetes_agent.add_chat_message(thread_id=chat_input.thread_id,
+        await apim_agent.add_chat_message(thread_id=chat_input.thread_id,
                                                 message=ChatMessageContent(role=AuthorRole.USER,
                                                                            content=chat_input.content))
 
-        async for content in kubernetes_agent.invoke_stream(thread_id=chat_input.thread_id):
+        async for content in apim_agent.invoke_stream(thread_id=chat_input.thread_id):
             yield content.content
