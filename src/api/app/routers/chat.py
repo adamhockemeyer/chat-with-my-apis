@@ -13,6 +13,7 @@ from app.models.chat_input import ChatInput
 from app.models.chat_create_thread_input import ChatCreateThreadInput
 from app.agents.apim_agent import create_apim_agent
 from app.config import get_settings
+from app.services.plugins import add_apim_apis_by_product
 
 logger = logging.getLogger("uvicorn.error")
 tracer = trace.get_tracer(__name__)
@@ -67,9 +68,12 @@ async def build_chat_results(chat_input: ChatInput):
         if not apim_agent:
             yield f"Agent with ID {chat_input.agent_id} not found"
 
+        # Add the APIs from the specified product       
+        await add_apim_apis_by_product(kernel, get_settings().azure_apim_service_product_id)
+
         await apim_agent.add_chat_message(thread_id=chat_input.thread_id,
-                                                message=ChatMessageContent(role=AuthorRole.USER,
-                                                                           content=chat_input.content))
+                                          message=ChatMessageContent(role=AuthorRole.USER,
+                                                                     content=chat_input.content))
 
         async for content in apim_agent.invoke_stream(thread_id=chat_input.thread_id):
             yield content.content
