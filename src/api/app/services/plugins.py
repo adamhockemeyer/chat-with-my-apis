@@ -6,6 +6,7 @@ from prance import ResolvingParser
 from prance.util import resolver
 from semantic_kernel.kernel import Kernel
 from semantic_kernel.connectors.openapi_plugin.openapi_function_execution_parameters import OpenAPIFunctionExecutionParameters
+from app.config import get_settings
 
 from app.services.apim import get_access_token, fetch_apis_by_product, fetch_openapi_spec
 
@@ -25,13 +26,13 @@ def sanitize_plugin_name(name):
 
 @tracer.start_as_current_span(name="add_openapi_plugin")
 async def add_openapi_plugin(kernel: Kernel, plugin_name:str, openapi_spec: str):
-    print(f"    > Adding OpenAPI plugin '{plugin_name}'")
+    logger.info(f"Adding OpenAPI plugin '{plugin_name}'")
 
     parser = ResolvingParser(spec_string=openapi_spec, resolve_types = resolver.RESOLVE_FILES, strict=False, recursion_limit=10)
     parsed_spec = parser.specification
 
     async def my_auth_callback(**kwargs):
-        return {"Ocp-Apim-Subscription-Key": os.environ["AZURE_APIM_SERVICE_SUBSCRIPTION_KEY"], "Content-Type": "application/json"}
+        return {"Ocp-Apim-Subscription-Key": get_settings().azure_apim_service_subscription_key, "Content-Type": "application/json"}
 
     kernel.add_plugin_from_openapi(
         plugin_name=plugin_name,
