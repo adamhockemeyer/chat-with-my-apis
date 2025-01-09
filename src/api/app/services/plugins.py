@@ -12,6 +12,7 @@ from app.services.apim import get_access_token, fetch_apis_by_product, fetch_ope
 logger = logging.getLogger("uvicorn.error")
 tracer = trace.get_tracer(__name__)
 
+@tracer.start_as_current_span(name="sanitize_plugin_name")
 def sanitize_plugin_name(name):
     # Replace any character that is not a letter, number, or underscore with an underscore
     sanitized_name = re.sub(r'[^0-9A-Za-z_]', '_', name)
@@ -22,6 +23,7 @@ def sanitize_plugin_name(name):
         sanitized_name = 'plugin'
     return sanitized_name
 
+@tracer.start_as_current_span(name="add_openapi_plugin")
 async def add_openapi_plugin(kernel: Kernel, plugin_name:str, openapi_spec: str):
     print(f"    > Adding OpenAPI plugin '{plugin_name}'")
 
@@ -43,6 +45,7 @@ async def add_openapi_plugin(kernel: Kernel, plugin_name:str, openapi_spec: str)
         )
     )
 
+@tracer.start_as_current_span(name="add_apim_apis_by_product")
 async def add_apim_apis_by_product(kernel, product_id):
     # Get the access token
     access_token = get_access_token()

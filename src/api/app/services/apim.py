@@ -1,5 +1,5 @@
-import requests
 import logging
+import requests
 from opentelemetry import trace
 from azure.identity import DefaultAzureCredential
 from app.config import get_settings
@@ -17,6 +17,7 @@ def get_access_token():
     return token.token
 
 # Function to fetch APIs that belong to a certain product
+@tracer.start_as_current_span(name="fetch_apis_by_product")
 def fetch_apis_by_product(access_token, product_id):
     headers = {
         'Authorization': f'Bearer {access_token}',
@@ -30,6 +31,7 @@ def fetch_apis_by_product(access_token, product_id):
     return response.json()['value']
 
 # Get the OpenAPI JSON file from the export endpoint
+@tracer.start_as_current_span(name="fetch_openapi_spec")
 def fetch_openapi_spec(api_id, access_token):
     headers = {
         'Authorization': f'Bearer {access_token}',

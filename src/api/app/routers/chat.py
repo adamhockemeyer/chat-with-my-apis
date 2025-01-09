@@ -68,7 +68,7 @@ async def build_chat_results(chat_input: ChatInput):
         if not apim_agent:
             yield f"Agent with ID {chat_input.agent_id} not found"
 
-        # Add the APIs from the specified product       
+        # Add the APIs from the specified product
         await add_apim_apis_by_product(kernel, get_settings().azure_apim_service_product_id)
 
         await apim_agent.add_chat_message(thread_id=chat_input.thread_id,
