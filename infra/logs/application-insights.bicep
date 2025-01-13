@@ -14,3 +14,8 @@ resource applicationInsights 'Microsoft.Insights/components@2020-02-02' = {
   }
   tags: commonTags
 }
+
+output resourceId string = applicationInsights.id
+output name string = name
+output instrumentationKey string = applicationInsights.properties.InstrumentationKey
+output connectionString string = applicationInsights.properties.ConnectionString

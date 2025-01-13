@@ -5,6 +5,7 @@ param publisherName string
 param appInsightsName string
 param commonTags object = {}
 param roleAssignments array = []
+param subscriptionName string
 
 @description('The pricing tier of this API Management service')
 @allowed([
@@ -36,11 +37,11 @@ resource apimService 'Microsoft.ApiManagement/service@2024-05-01' = {
 }
 
 resource apimSubscription 'Microsoft.ApiManagement/service/subscriptions@2023-09-01-preview' = {
-  name: 'apichat-subscription'
+  name: subscriptionName
   parent: apimService
   properties: {
     allowTracing: true
-    displayName: 'apichat-subscription'
+    displayName: subscriptionName
     // All API's are included in this example subscription
     scope: '/apis'
     state: 'active'
@@ -82,3 +83,4 @@ output name string = apimService.name
 output principalId string = apimService.identity.principalId
 output loggerId string = apimLogger.id
 output loggerName string = apimLogger.name
+output gatewayUrl string = apimService.properties.gatewayUrl

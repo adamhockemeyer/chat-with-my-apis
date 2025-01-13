@@ -36,3 +36,4 @@ resource containerAppsEnvironment 'Microsoft.App/managedEnvironments@2024-03-01'
 output containerAppsEnvironmentResourceId string = containerAppsEnvironment.id
 output consumptionWorkloadProfileName string = containerAppsEnvironment.properties.workloadProfiles[0].name
 output dedicatedD4WorkloadProfileName string = containerAppsEnvironment.properties.workloadProfiles[1].name
+output containerAppsEnvironmentName string = containerAppsEnvironment.name
