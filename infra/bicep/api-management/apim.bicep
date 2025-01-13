@@ -4,6 +4,7 @@ param publisherEmail string
 param publisherName string
 param appInsightsName string
 param commonTags object = {}
+param roleAssignments array = []
 
 @description('The pricing tier of this API Management service')
 @allowed([
@@ -63,6 +64,18 @@ resource apimLogger 'Microsoft.ApiManagement/service/loggers@2023-09-01-preview'
     resourceId: appInsights.id
   }
 }
+
+resource roleAssignmentsResource 'Microsoft.Authorization/roleAssignments@2022-04-01' = [
+  for roleAssignment in roleAssignments: if(length(roleAssignment) > 0 ) {
+    name: guid(roleAssignment.principalId, roleAssignment.roleDefinitionId, apimService.id)
+    scope: apimService
+    properties: {
+      roleDefinitionId: resourceId('Microsoft.Authorization/roleDefinitions', roleAssignment.roleDefinitionId)
+      principalId: apimService.identity.principalId
+      principalType: 'ServicePrincipal'
+    }
+  }
+]
 
 output id string = apimService.id
 output name string = apimService.name

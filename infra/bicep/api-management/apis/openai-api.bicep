@@ -25,7 +25,6 @@ resource apiDefinition 'Microsoft.ApiManagement/service/apis@2023-09-01-preview'
     subscriptionRequired: true
     type: 'http'
     protocols: ['https']
-    //serviceUrl: empty(backendName) ? 'https://${endpoint}/openai' : ''
   }
 }
 
@@ -33,10 +32,7 @@ var policy1 = '''
     <policies>
       <inbound>
         <base />
-        '''
-var policy2 = '<set-backend-service backend-id="${backendName}" />'
-
-var policy3 = '''
+      <set-backend-service backend-id="{{OpenAI-Backend-Pool}}" />
       <authentication-managed-identity resource="https://cognitiveservices.azure.com" output-token-variable-name="managed-id-access-token" ignore-error="false" />
       <set-header name="Authorization" exists-action="override">
           <value>@("Bearer " + (string)context.Variables["managed-id-access-token"])</value>
@@ -77,7 +73,7 @@ resource apiPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-09-01-pre
   parent: apiDefinition
   properties: {
     format: 'rawxml'
-    value: concat(policy1, policy2, policy3)
+    value: policy1
   }
 }
 

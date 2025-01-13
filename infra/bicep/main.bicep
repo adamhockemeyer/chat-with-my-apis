@@ -90,6 +90,19 @@ module apim 'api-management/apim.bicep' = {
     publisherEmail: apimPublisherEmail
     publisherName: 'apim-${prefix}'
     appInsightsName: applicationInsights.name
+    roleAssignments: [
+      {
+        principalId: ''
+        roleDefinitionId: sharedRoleDefinitions['API Management Service Reader Role']
+      }
+    ]
+  }
+}
+
+module apimApisSwagger 'api-management/apis/swagger-api.bicep' = {
+  name: '${prefix}-apim-swagger-api'
+  params: {
+    serviceName: apim.outputs.name
   }
 }
 
@@ -102,6 +115,16 @@ module apimBackendsOpenAI 'api-management/apim-backends-aoai.bicep' = {
       cognitiveServices1.outputs.name
       cognitiveServices2.outputs.name
     ]
+  }
+}
+
+module apimNameValueOpenAIPool 'api-management/apim-namevalue.bicep' = {
+  name: '${prefix}-apim-namedvalue-openai-pool'
+  params: {
+    apiManagementServiceName: apim.outputs.name
+    name: 'openai-backend-pool'
+    displayName: 'OpenAI-Backend-Pool'
+    value: apimBackendsOpenAI.outputs.backendPoolName
   }
 }
 
@@ -121,6 +144,22 @@ module maps 'maps/maps.bicep' = {
     name: '${prefix}-maps'
     tags: commonTags
     storageAccountName: storageAccount.name
+    roleAssignments: [
+      {
+        principalId: apim.outputs.principalId
+        roleDefinitionId: sharedRoleDefinitions['Azure Maps Data Reader']
+      }
+    ]
+  }
+}
+
+module apimNamedValueMapsId 'api-management/apim-namevalue.bicep' = {
+  name: '${prefix}-apim-namedvalue-maps-id'
+  params: {
+    apiManagementServiceName: apim.outputs.name
+    name: 'maps-clientId'
+    displayName: 'Azure-Maps-Client-ID'
+    value: maps.outputs.clientId
   }
 }
 
