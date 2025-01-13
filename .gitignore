@@ -359,3 +359,4 @@ config.txt
 
 **/app/data
 .azure
+.env

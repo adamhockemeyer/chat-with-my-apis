@@ -1,0 +1,36 @@
+openapi: 3.0.1
+info:
+  title: Swagger API
+  description: Exposes the OpenAPI spec for an API Endpoint
+  version: '1.0'
+servers:
+  - url: https://apim-55vh-apichat.azure-api.net/docs
+paths:
+  '/docs/{api-id}/openapi':
+    get:
+      summary: OpenAPI Spec
+      description: Returns the OpenAPI specification for a given api-id
+      operationId: openapi-spec
+      parameters:
+        - name: api-id
+          in: path
+          description: Id of the API inside Azure API Management
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OpenAPI spec in JSON or YAML format for a given API.
+components:
+  securitySchemes:
+    apiKeyHeader:
+      type: apiKey
+      name: Ocp-Apim-Subscription-Key
+      in: header
+    apiKeyQuery:
+      type: apiKey
+      name: subscription-key
+      in: query
+security:
+  - apiKeyHeader: [ ]
+  - apiKeyQuery: [ ]

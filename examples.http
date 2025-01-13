@@ -1,0 +1,38 @@
+@baseUrl = https://apim-55vh-apichat.azure-api.net
+# create a .env folder in the root of the project and add the following values
+@apimSubscriptionKey = {{$dotenv APIM_SUBSCRIPTION_KEY}}
+
+### Sample Request for Azure Maps Weather API
+
+GET {{baseUrl}}/weather/weather/currentConditions/json?api-version=1.0&query=47.641268%2C-122.125679&unit=metric&details=true&duration=0 HTTP/1.1
+Host: apim-55vh-apichat.azure-api.net
+Ocp-Apim-Subscription-Key: {{apimSubscriptionKey}}
+
+### Sample Request for OpenAI GPT-4o Chat API
+
+POST {{baseUrl}}/openai/deployments/gpt-4o/chat/completions?api-version=2024-10-21 HTTP/1.1
+Host: apim-55vh-apichat.azure-api.net
+Content-Type: application/json
+Ocp-Apim-Subscription-Key: {{apimSubscriptionKey}}
+
+{
+    "stream": true,
+    "stream_options": {"include_usage": true},
+    "messages": [
+        {
+        "role": "system",
+        "content": "You are a helpful assistant."
+        },
+        {
+        "role": "user",
+        "content": "Hello, who won the last cricket match between India and Australia?"
+        }
+    ]
+}
+
+### Sample Request for OpenAPI Spec of a given API id
+
+GET {{baseUrl}}/docs/docs/azure-maps-weather-service/openapi HTTP/1.1
+Host: apim-55vh-apichat.azure-api.net
+Ocp-Apim-Subscription-Key: {{apimSubscriptionKey}}
+
