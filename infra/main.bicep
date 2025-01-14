@@ -265,7 +265,7 @@ module apiContainerApp 'container-apps/container-app-upsert.bicep' = {
       }
       {
         name: 'AZURE_OPENAI_ENDPOINT'
-        value: 'https://${apim.outputs.gatewayUrl}/openai'
+        value: '${apim.outputs.gatewayUrl}/'
       }
       {
         name: 'AZURE_OPENAI_CHAT_DEPLOYMENT_NAME'

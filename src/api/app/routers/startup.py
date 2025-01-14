@@ -41,6 +41,7 @@ async def check_azure_openai():
     headers = {
         "Content-Type": "application/json",
         "api-key": get_settings().azure_openai_api_key,
+        "Ocp-Apim-Subscription-Key": get_settings().azure_apim_service_subscription_key
     }
 
     body = {

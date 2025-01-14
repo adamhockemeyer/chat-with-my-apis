@@ -37,7 +37,7 @@ var policy1 = '''
       <set-header name="Authorization" exists-action="override">
           <value>@("Bearer " + (string)context.Variables["managed-id-access-token"])</value>
       </set-header>
-      <azure-openai-token-limit counter-key="@(context.Subscription.Id)" tokens-per-minute="150000" estimate-prompt-tokens="true" tokens-consumed-header-name="x-request-tokens-consumed" tokens-consumed-variable-name="tokensConsumed" remaining-tokens-variable-name="remainingTokens" />
+      <!-- <azure-openai-token-limit counter-key="@(context.Subscription.Id)" tokens-per-minute="150000" estimate-prompt-tokens="true" tokens-consumed-header-name="x-request-tokens-consumed" tokens-consumed-variable-name="tokensConsumed" remaining-tokens-variable-name="remainingTokens" /> -->
       <azure-openai-emit-token-metric namespace="openai">
             <dimension name="Subscription ID" value="@(context.Subscription.Id)" />
             <dimension name="Client IP" value="@(context.Request.IpAddress)" />
