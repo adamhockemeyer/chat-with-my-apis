@@ -8,7 +8,8 @@ resource apimService 'Microsoft.ApiManagement/service@2023-09-01-preview' existi
   name: serviceName
 }
 
-var openApiSpecUrl = 'https://raw.githubusercontent.com/Azure/azure-rest-api-specs/main/specification/cognitiveservices/data-plane/AzureOpenAI/inference/stable/2024-10-21/inference.json'
+//var openApiSpecUrl = 'https://raw.githubusercontent.com/Azure/azure-rest-api-specs/main/specification/cognitiveservices/data-plane/AzureOpenAI/inference/stable/2024-10-21/inference.json'
+var openApiSpecUrl = 'https://raw.githubusercontent.com/Azure/azure-rest-api-specs/refs/heads/main/specification/cognitiveservices/data-plane/AzureOpenAI/inference/preview/2024-12-01-preview/inference.json'
 // var aoaiSwagger = loadTextContent('./azure-openai-2024-10-21.json')
 // var aoaiSwaggerUrl = replace(aoaiSwagger, 'https://{endpoint}/openai', 'https://${endpoint}/openai')
 // var aoaiSwaggerDefault = replace(aoaiSwaggerUrl, 'your-resource-name.openai.azure.com', '${serviceName}')
@@ -18,7 +19,7 @@ resource apiDefinition 'Microsoft.ApiManagement/service/apis@2023-09-01-preview'
   parent: apimService
   properties: {
     path: 'openai'
-    description: 'See https://github.com/Azure/azure-rest-api-specs/blob/main/specification/cognitiveservices/data-plane/AzureOpenAI/inference/stable/2024-10-21/inference.json'
+    description: 'See https://raw.githubusercontent.com/Azure/azure-rest-api-specs/refs/heads/main/specification/cognitiveservices/data-plane/AzureOpenAI/inference/preview/2024-12-01-preview/inference.json'
     displayName: 'azure-openai'
     format: 'openapi-link'
     value: openApiSpecUrl

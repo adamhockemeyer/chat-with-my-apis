@@ -308,7 +308,7 @@ module apiContainerApp 'container-apps/container-app-upsert.bicep' = {
         value: maps.outputs.clientId
       }
     ]
-    targetPort: 8000
+    targetPort: 80
   }
 }
 
@@ -331,7 +331,7 @@ module webContainerApp 'container-apps/container-app-upsert.bicep' = {
         value: applicationInsights.outputs.connectionString
       }
     ]
-    targetPort: 8000
+    targetPort: 80
   }
 }
 

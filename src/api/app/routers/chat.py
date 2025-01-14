@@ -38,7 +38,8 @@ async def post_create_thread(agent_input: ChatCreateThreadInput):
         id=agent_input.agent_id,
         kernel=kernel,
         endpoint=get_settings().azure_openai_endpoint,
-        api_key=get_settings().azure_openai_api_key,
+        #api_key=get_settings().azure_openai_api_key,
+        default_headers={"Ocp-Apim-Subscription-Key": get_settings().azure_apim_service_subscription_key},
         api_version=get_settings().azure_openai_api_version
         )
 
@@ -62,7 +63,8 @@ async def build_chat_results(chat_input: ChatInput):
             id=chat_input.agent_id,
             kernel=kernel,
             endpoint=get_settings().azure_openai_endpoint,
-            api_key=get_settings().azure_openai_api_key,
+            #api_key=get_settings().azure_openai_api_key,
+            default_headers={"Ocp-Apim-Subscription-Key": get_settings().azure_apim_service_subscription_key},
             api_version=get_settings().azure_openai_api_version)
 
         if not apim_agent:

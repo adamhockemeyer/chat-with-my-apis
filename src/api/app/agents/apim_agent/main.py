@@ -23,7 +23,10 @@ async def create_apim_agent(kernel: Kernel) -> AzureAssistantAgent:
                     """,
                     enable_code_interpreter=False,
                     endpoint=get_settings().azure_openai_endpoint,
-                    api_key=get_settings().azure_openai_api_key,
+                    #api_key=get_settings().azure_openai_api_key,
+                    default_headers={
+                        "Ocp-Apim-Subscription-Key": get_settings().azure_apim_service_subscription_key
+                        },
                     api_version=get_settings().azure_openai_api_version,
                     deployment_name=get_settings().azure_openai_chat_deployment_name,
                     enable_file_search=False,
