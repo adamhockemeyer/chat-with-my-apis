@@ -68,3 +68,6 @@ resource deployment 'Microsoft.CognitiveServices/accounts/deployments@2024-10-01
     }
   }
 ]
+
+output chatDeploymentName string = deployment[0].name
+output embeddingDeploymentName string = deployment[1].name

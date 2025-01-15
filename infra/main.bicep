@@ -1,10 +1,18 @@
+@minLength(1)
+@maxLength(64)
+@description('Name of the the environment')
+param environmentName string
 param prefix string = '${substring(uniqueString(resourceGroup().id),0,4)}-apichat'
 param region string = resourceGroup().location
 param commonTags object = {
   created_by: 'bicep'
   project: 'API Chat'
+  'azd-env-name': environmentName
 }
 param apimPublisherEmail string = 'user@company.com'
+param apiAppExists bool = false
+param webAppExists bool = false
+param azureMapsLocation string
 
 var sharedRoleDefinitions = loadJsonContent('./role-definitions.json')
 
@@ -81,15 +89,19 @@ module openAIDeployments2 'cognitive-services/openai-deployments.bicep' = {
   }
 }
 
+var apimName = 'apim-${prefix}'
+var apimSubscriptionName = 'apichat-subscription'
+
 module apim 'api-management/apim.bicep' = {
   name: '${prefix}-apim'
   params: {
     location: region
-    name: 'apim-${prefix}'
+    name: apimName
     commonTags: commonTags
     publisherEmail: apimPublisherEmail
     publisherName: 'apim-${prefix}'
     appInsightsName: applicationInsights.name
+    subscriptionName: apimSubscriptionName
     roleAssignments: [
       {
         principalId: ''
@@ -128,6 +140,16 @@ module apimNameValueOpenAIPool 'api-management/apim-namevalue.bicep' = {
   }
 }
 
+module apimNamedValueOpenAINonLoadBalancedPool 'api-management/apim-namevalue.bicep' = {
+  name: '${prefix}-apim-namedvalue-openai-non-load-balanced-pool'
+  params: {
+    name: 'non-load-balanced-openai-backend-name'
+    apiManagementServiceName: apim.outputs.name
+    displayName: 'non-load-balanced-openai-backend-name'
+    value: cognitiveServices1.outputs.name
+  }
+}
+
 module apimApisOpenAI 'api-management/apis/openai-api.bicep' = {
   name: '${prefix}-apim-openai-api'
   params: {
@@ -140,7 +162,7 @@ module apimApisOpenAI 'api-management/apis/openai-api.bicep' = {
 module maps 'maps/maps.bicep' = {
   name: '${prefix}-maps'
   params: {
-    location: region
+    location: azureMapsLocation
     name: '${prefix}-maps'
     tags: commonTags
     storageAccountName: storageAccount.name
@@ -176,7 +198,7 @@ module apimProduct 'api-management/apim-product.bicep' = {
     apiManagementServiceName: apim.outputs.name
     productName: 'generic-chat-agent'
     productDisplayName: 'Generic Chat Agent'
-    productDescription: 'This product has all all available APIs enabled for the Chat Agent'
+    productDescription: 'This product has all available APIs enabled for the Chat Agent'
     productTerms: 'API Chat Product Terms'
     productApis: [
       apimApisMaps.outputs.id
@@ -196,3 +218,139 @@ module cosmosDB 'cosmos-db/cosmosdb.bicep' = {
     tags: commonTags
   }
 }
+
+module containerAppsEnvironment 'container-apps/container-app-environment.bicep' = {
+  name: '${prefix}-container-app-environment'
+  params: {
+    containerAppsName: prefix
+    workspaceResourceName: logAnalytics.outputs.workspaceName
+    tags: commonTags
+  }
+}
+
+resource userAssignedManagedIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-31' = {
+  name: '${prefix}-identity'
+  location: region
+}
+
+module containerRegistry 'container-apps/container-registry.bicep' = {
+  name: '${prefix}-container-registry'
+  params: {
+    location: region
+    name: '${replace(prefix, '-', '')}cr'
+    tags: commonTags
+  }
+}
+
+resource apimService 'Microsoft.ApiManagement/service@2024-05-01' existing = {
+  name: apimName
+}
+
+resource apimSubscription 'Microsoft.ApiManagement/service/subscriptions@2023-09-01-preview' existing = {
+  name: apimSubscriptionName
+  parent: apimService
+}
+
+module apiContainerApp 'container-apps/container-app-upsert.bicep' = {
+  name: '${prefix}-api-container-app'
+  params: {
+    name: '${prefix}-api'
+    location: region
+    tags: union(commonTags, { 'azd-service-name': 'api' })
+    identityType: 'UserAssigned'
+    identityName: userAssignedManagedIdentity.name
+    exists: apiAppExists
+    containerAppsEnvironmentName: containerAppsEnvironment.outputs.containerAppsEnvironmentName
+    containerRegistryName: containerRegistry.outputs.name
+    containerCpuCoreCount: '1.0'
+    containerMemory: '2.0Gi'
+    env: [
+      {
+        name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+        value: applicationInsights.outputs.connectionString
+      }
+      {
+        name: 'AZURE_OPENAI_API_KEY'
+        value: apimSubscription.listSecrets().primaryKey
+      }
+      {
+        name: 'AZURE_OPENAI_ENDPOINT'
+        value: '${apim.outputs.gatewayUrl}/'
+      }
+      {
+        name: 'AZURE_OPENAI_CHAT_DEPLOYMENT_NAME'
+        value: openAIDeployments1.outputs.chatDeploymentName
+      }
+      {
+        name: 'AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME'
+        value: openAIDeployments1.outputs.embeddingDeploymentName
+      }
+      {
+        name: 'AZURE_OPENAI_API_VERSION'
+        value: '2024-08-01-preview'
+      }
+      {
+        name: 'AZURE_SUBSCRIPTION_ID'
+        value: subscription().subscriptionId
+      }
+      {
+        name: 'AZURE_RESOURCE_GROUP'
+        value: resourceGroup().name
+      }
+      {
+        name: 'AZURE_APIM_SERVICE_NAME'
+        value: apim.outputs.name
+      }
+      {
+        name: 'AZURE_APIM_SERVICE_API_VERSION'
+        value: '2022-08-01'
+      }
+      {
+        name: 'AZURE_APIM_SERVICE_PRODUCT_ID'
+        value: apimProduct.name
+      }
+      {
+        name: 'AZURE_APIM_SERVICE_SUBSCRIPTION_KEY'
+        value: apimSubscription.listSecrets().primaryKey
+      }
+      {
+        name: 'AZURE_MAPS_CLIENT_ID'
+        value: maps.outputs.clientId
+      }
+    ]
+    targetPort: 80
+  }
+}
+
+module webContainerApp 'container-apps/container-app-upsert.bicep' = {
+  name: '${prefix}-web-container-app'
+  params: {
+    name: '${prefix}-web'
+    location: region
+    tags: union(commonTags, { 'azd-service-name': 'web' })
+    identityType: 'UserAssigned'
+    identityName: userAssignedManagedIdentity.name
+    exists: webAppExists
+    containerAppsEnvironmentName: containerAppsEnvironment.outputs.containerAppsEnvironmentName
+    containerRegistryName: containerRegistry.outputs.name
+    containerCpuCoreCount: '1.0'
+    containerMemory: '2.0Gi'
+    env: [
+      {
+        name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
+        value: applicationInsights.outputs.connectionString
+      }
+    ]
+    targetPort: 80
+  }
+}
+
+// App outputs
+output AZURE_CONTAINER_REGISTRY_ENDPOINT string = containerRegistry.outputs.loginServer
+output AZURE_CONTAINER_REGISTRY_NAME string = containerRegistry.outputs.name
+output AZURE_LOCATION string = region
+output AZURE_TENANT_ID string = tenant().tenantId
+output API_BASE_URL string = apiContainerApp.outputs.uri
+output REACT_APP_WEB_BASE_URL string = webContainerApp.outputs.uri
+output SERVICE_API_NAME string = apiContainerApp.outputs.name
+output SERVICE_WEB_NAME string = webContainerApp.outputs.name

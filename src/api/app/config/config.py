@@ -8,7 +8,6 @@ class Settings(BaseSettings):
     azure_openai_api_version: str
     azure_openai_chat_deployment_name: str
     azure_openai_embedding_deployment_name: str
-    azure_openai_api_key: str
     azure_subscription_id: str
     azure_resource_group: str
     azure_apim_service_name: str

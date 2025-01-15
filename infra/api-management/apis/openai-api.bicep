@@ -8,7 +8,8 @@ resource apimService 'Microsoft.ApiManagement/service@2023-09-01-preview' existi
   name: serviceName
 }
 
-var openApiSpecUrl = 'https://raw.githubusercontent.com/Azure/azure-rest-api-specs/main/specification/cognitiveservices/data-plane/AzureOpenAI/inference/stable/2024-10-21/inference.json'
+//var openApiSpecUrl = 'https://raw.githubusercontent.com/Azure/azure-rest-api-specs/main/specification/cognitiveservices/data-plane/AzureOpenAI/inference/stable/2024-10-21/inference.json'
+var openApiSpecUrl = 'https://raw.githubusercontent.com/Azure/azure-rest-api-specs/refs/heads/main/specification/cognitiveservices/data-plane/AzureOpenAI/inference/preview/2024-12-01-preview/inference.json'
 // var aoaiSwagger = loadTextContent('./azure-openai-2024-10-21.json')
 // var aoaiSwaggerUrl = replace(aoaiSwagger, 'https://{endpoint}/openai', 'https://${endpoint}/openai')
 // var aoaiSwaggerDefault = replace(aoaiSwaggerUrl, 'your-resource-name.openai.azure.com', '${serviceName}')
@@ -18,7 +19,7 @@ resource apiDefinition 'Microsoft.ApiManagement/service/apis@2023-09-01-preview'
   parent: apimService
   properties: {
     path: 'openai'
-    description: 'See https://github.com/Azure/azure-rest-api-specs/blob/main/specification/cognitiveservices/data-plane/AzureOpenAI/inference/stable/2024-10-21/inference.json'
+    description: 'See https://raw.githubusercontent.com/Azure/azure-rest-api-specs/refs/heads/main/specification/cognitiveservices/data-plane/AzureOpenAI/inference/preview/2024-12-01-preview/inference.json'
     displayName: 'azure-openai'
     format: 'openapi-link'
     value: openApiSpecUrl
@@ -32,12 +33,20 @@ var policy1 = '''
     <policies>
       <inbound>
         <base />
-      <set-backend-service backend-id="{{OpenAI-Backend-Pool}}" />
+      <choose>
+          <!-- If we are calling the Assistants API, we can't load balance since all of the Assistant objects are scoped to a single instance of OpenAI-->
+          <when condition="@(context.Request.Url.Path.Contains("assistants"))">
+              <set-backend-service backend-id="{{non-load-balanced-openai-backend-name}}" />
+          </when>
+          <otherwise>
+              <set-backend-service backend-id="{{OpenAI-Backend-Pool}}" />
+          </otherwise>
+      </choose> 
       <authentication-managed-identity resource="https://cognitiveservices.azure.com" output-token-variable-name="managed-id-access-token" ignore-error="false" />
       <set-header name="Authorization" exists-action="override">
           <value>@("Bearer " + (string)context.Variables["managed-id-access-token"])</value>
       </set-header>
-      <azure-openai-token-limit counter-key="@(context.Subscription.Id)" tokens-per-minute="150000" estimate-prompt-tokens="true" tokens-consumed-header-name="x-request-tokens-consumed" tokens-consumed-variable-name="tokensConsumed" remaining-tokens-variable-name="remainingTokens" />
+      <!-- <azure-openai-token-limit counter-key="@(context.Subscription.Id)" tokens-per-minute="150000" estimate-prompt-tokens="true" tokens-consumed-header-name="x-request-tokens-consumed" tokens-consumed-variable-name="tokensConsumed" remaining-tokens-variable-name="remainingTokens" /> -->
       <azure-openai-emit-token-metric namespace="openai">
             <dimension name="Subscription ID" value="@(context.Subscription.Id)" />
             <dimension name="Client IP" value="@(context.Request.IpAddress)" />
