@@ -1,10 +1,10 @@
-name: sk-aks
+name: apichat
 services:  
   api:
     project: ./src/api
     language: py
     host: containerapp
-  # web:
-  #   project: ./src/web
-  #   language: py
-  #   host: containerapp
+  web:
+    project: ./frontend
+    language: ts
+    host: containerapp
