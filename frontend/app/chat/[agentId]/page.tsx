@@ -11,7 +11,7 @@ import { ApiList } from '../../components/ApiList'
 import { WelcomeMessage } from '../../components/WelcomeMessage'
 import { useParams } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
-// import { CodeProps } from 'react-markdown/lib/ast-to-react'
+import { TypingAnimation } from '../../components/TypingAnimation'
 import { chat } from '../../actions/sk_chat'
 
 type Feedback = 'up' | 'down' | null;
@@ -25,6 +25,7 @@ export default function ChatPage() {
   const inputRef = useRef<HTMLInputElement>(null)
   const [apis, setApis] = useState<Array<{ id: string; name: string }>>([])
   const [feedback, setFeedback] = useState<{ [key: string]: Feedback }>({})
+
 
   const [input, setInput] = useState('')
   const [chatThreadId, setChatThreadId] = useState('')
@@ -190,8 +191,8 @@ export default function ChatPage() {
                       <>
                         {isLoading && m.content == '' && (
                           <div className="text-left">
-                            <span className="inline-block p-2 rounded-lg bg-gray-200 text-black">
-                              AI is typing...
+                            <span className="inline-block p-2 rounded-lg bg-gray-200">
+                              <TypingAnimation />
                             </span>
                           </div>
                         )}
