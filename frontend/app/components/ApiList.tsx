@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { X } from 'lucide-react'
 
 interface ApiListProps {
-  apis: { id: number; name: string }[]
+  apis: { id: string; name: string }[]
   selectedApis: string[]
   apiSearch: string
   onApiSelect: (apiName: string) => void
