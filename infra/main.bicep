@@ -254,7 +254,7 @@ resource apimSubscription 'Microsoft.ApiManagement/service/subscriptions@2023-09
 module apiContainerApp 'container-apps/container-app-upsert.bicep' = {
   name: '${prefix}-api-container-app'
   params: {
-    name: '${prefix}-api'
+    name: 'api'
     location: region
     tags: union(commonTags, { 'azd-service-name': 'api' })
     identityType: 'UserAssigned'
@@ -325,7 +325,7 @@ module apiContainerApp 'container-apps/container-app-upsert.bicep' = {
 module webContainerApp 'container-apps/container-app-upsert.bicep' = {
   name: '${prefix}-web-container-app'
   params: {
-    name: '${prefix}-web'
+    name: 'web'
     location: region
     tags: union(commonTags, { 'azd-service-name': 'web' })
     identityType: 'UserAssigned'
@@ -340,8 +340,12 @@ module webContainerApp 'container-apps/container-app-upsert.bicep' = {
         name: 'APPLICATIONINSIGHTS_CONNECTION_STRING'
         value: applicationInsights.outputs.connectionString
       }
+      {
+        name: 'SK_API_ENDPOINT'
+        value: apiContainerApp.outputs.uri
+      }
     ]
-    targetPort: 80
+    targetPort: 3000
   }
 }
 

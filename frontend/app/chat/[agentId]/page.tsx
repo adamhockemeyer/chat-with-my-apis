@@ -2,40 +2,83 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useChat } from 'ai/react'
+import { readStreamableValue } from 'ai/rsc';
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
-import { X } from 'lucide-react'
+import { X, ThumbsUp, ThumbsDown } from 'lucide-react'
 import { ApiList } from '../../components/ApiList'
 import { WelcomeMessage } from '../../components/WelcomeMessage'
 import { useParams } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
+import { TypingAnimation } from '../../components/TypingAnimation'
+import { chat } from '../../actions/sk_chat'
+
+type Feedback = 'up' | 'down' | null;
 
 export default function ChatPage() {
   const { agentId } = useParams()
   const [selectedApis, setSelectedApis] = useState<string[]>([])
   const [showApiList, setShowApiList] = useState(false)
   const [apiSearch, setApiSearch] = useState('')
-  const [apiListPosition, setApiListPosition] = useState({ top: 0, left: 0 })
+  const [apiListPosition, setApiListPosition] = useState({ top: 0, left: 0, bottom: 0 })
   const inputRef = useRef<HTMLInputElement>(null)
   const [apis, setApis] = useState<Array<{ id: string; name: string }>>([])
+  const [feedback, setFeedback] = useState<{ [key: string]: Feedback }>({})
 
+
+  const [input, setInput] = useState('')
+  const [chatThreadId, setChatThreadId] = useState('')
+  const [chatAgentId, setChatAgentId] = useState('')
+  const [isLoading, setIsLoading] = useState(false)
+  const [messages, setMessages] = useState<Array<{ role: string; content: string }>>([])
+  const [chatResponses, setChatResponses] = useState<string>("") // Declare the setChatResponses function
   const isGeneralChat = agentId === 'general';
 
-  const { messages, input, handleInputChange, handleSubmit, setMessages, isLoading } = useChat({
-    api: '/api/sk-chat',
-    body: { agentName: isGeneralChat ? undefined : agentId, apis: isGeneralChat ? selectedApis : undefined },
-    onResponse: (response) => {
-      // This callback is called when the response starts streaming
-      console.log('Streaming started', response)
-    },
-    onFinish: (message) => {
-      // This callback is called when the streaming is finished
-      console.log('Streaming finished', message)
-    },
-  })
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (!input) return
 
-  const filteredApis = apis.filter(api => 
+    setIsLoading(true)
+    try {
+
+
+      // Add user message immediately
+      setMessages((prev) => [...prev, { role: 'user', content: input }, { role: 'assistant', content: '' }])
+
+      // Do not destructure. Just get “stream”
+      const { output, agentId, threadId } = await chat(input, chatThreadId, chatAgentId)
+
+      setChatThreadId(threadId)
+      setChatAgentId(agentId)
+
+
+      let fullResponse = ''
+      const newEntryIndex = messages.length + 1 // index of the new “assistant” entry
+
+      // Use readStreamableValue to get chunks from the SSE stream
+      for await (const chunk of readStreamableValue(output)) {
+        console.log('chunk:', chunk)
+        fullResponse += chunk
+        setMessages((prev) =>
+          prev.map((item, idx) =>
+            idx === newEntryIndex ? { ...item, role: 'assistant', content: fullResponse } : item
+          )
+        )
+      }
+    } catch (error) {
+      console.error('Error generating response:', error)
+    } finally {
+      setIsLoading(false)
+      setInput('')
+    }
+  }
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInput(e.target.value)
+  }
+
+  const filteredApis = apis.filter(api =>
     api.name.toLowerCase().includes(apiSearch.toLowerCase())
   )
 
@@ -71,6 +114,7 @@ export default function ChatPage() {
     if (e.key === '@' && isGeneralChat) {
       const rect = e.currentTarget.getBoundingClientRect()
       setApiListPosition({
+        top: 0,
         bottom: window.innerHeight - rect.top + 10,
         left: rect.left
       })
@@ -79,11 +123,21 @@ export default function ChatPage() {
     }
   }
 
+  const handleFeedback = (messageId: any, feedbackType: Feedback) => {
+    setFeedback(prev => ({
+      ...prev,
+      [messageId]: feedbackType
+    }))
+    // Here you would typically send this feedback to your backend
+    console.log(`Feedback for message ${messageId}: ${feedbackType}`)
+  }
+
   useEffect(() => {
     if (input.endsWith('@') && isGeneralChat) {
       const rect = inputRef.current?.getBoundingClientRect()
       if (rect) {
         setApiListPosition({
+          top: 0,
           bottom: window.innerHeight - rect.top + 10,
           left: rect.left
         })
@@ -128,40 +182,58 @@ export default function ChatPage() {
             <WelcomeMessage isGeneralChat={isGeneralChat} />
           ) : (
             <>
-              {messages.map(m => (
-                <div key={m.id} className={`mb-4 ${m.role === 'user' ? 'text-right' : 'text-left'}`}>
+              {messages.map((m, i) => (
+                <div key={i} className={`mb-4 ${m.role === 'user' ? 'text-right' : 'text-left'}`}>
                   <div className={`inline-block p-2 rounded-lg ${m.role === 'user' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-black'}`}>
                     {m.role === 'user' ? (
                       m.content
                     ) : (
-                      <ReactMarkdown
-                        components={{
-                          p: ({ node, ...props }) => <p className="mb-2" {...props} />,
-                          ul: ({ node, ...props }) => <ul className="list-disc pl-4 mb-2" {...props} />,
-                          ol: ({ node, ...props }) => <ol className="list-decimal pl-4 mb-2" {...props} />,
-                          li: ({ node, ...props }) => <li className="mb-1" {...props} />,
-                          a: ({ node, ...props }) => <a className="text-blue-600 hover:underline" {...props} />,
-                          code: ({ node, inline, ...props }) => 
-                            inline ? (
-                              <code className="bg-gray-100 rounded px-1 py-0.5" {...props} />
-                            ) : (
-                              <code className="block bg-gray-100 rounded p-2 my-2 whitespace-pre-wrap" {...props} />
-                            ),
-                        }}
-                      >
-                        {m.content}
-                      </ReactMarkdown>
+                      <>
+                        {isLoading && m.content == '' && (
+                          <div className="text-left">
+                            <span className="inline-block p-2 rounded-lg bg-gray-200">
+                              <TypingAnimation />
+                            </span>
+                          </div>
+                        )}
+                        <ReactMarkdown
+                          components={{
+                            p: ({ node, ...props }) => <p className="mb-2" {...props} />,
+                            ul: ({ node, ...props }) => <ul className="list-disc pl-4 mb-2" {...props} />,
+                            ol: ({ node, ...props }) => <ol className="list-decimal pl-4 mb-2" {...props} />,
+                            li: ({ node, ...props }) => <li className="mb-1" {...props} />,
+                            a: ({ node, ...props }) => <a className="text-blue-600 hover:underline" {...props} />,
+                            code: ({ node, ...props }) => <code className="block bg-gray-100 rounded p-2 my-2 whitespace-pre-wrap" {...props} />
+                          }}
+                        >
+                          {m.content}
+                        </ReactMarkdown>
+                        {!isLoading && m.content != '' && (
+                          <div className="flex justify-end mt-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleFeedback(i, 'up')}
+                              className={feedback[i] === 'up' ? 'text-green-500' : 'text-gray-500'}
+                            >
+                              <ThumbsUp size={16} />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleFeedback(i, 'down')}
+                              className={feedback[i] === 'down' ? 'text-red-500' : 'text-gray-500'}
+                            >
+                              <ThumbsDown size={16} />
+                            </Button>
+                          </div>
+                        )}
+
+                      </>
                     )}
                   </div>
                 </div>
               ))}
-              {isLoading && (
-                <div className="text-left">
-                  <span className="inline-block p-2 rounded-lg bg-gray-200 text-black">
-                    AI is typing...
-                  </span>
-                </div>
-              )}
             </>
           )}
         </CardContent>
