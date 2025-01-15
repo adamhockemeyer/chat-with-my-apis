@@ -40,7 +40,7 @@ async def startup_probe(response: Response):
 async def check_azure_openai():
     headers = {
         "Content-Type": "application/json",
-        "api-key": get_settings().azure_openai_api_key,
+        "Ocp-Apim-Subscription-Key": get_settings().azure_apim_service_subscription_key
     }
 
     body = {
@@ -53,8 +53,8 @@ async def check_azure_openai():
         azure_openai_status = await session.post(
             url=(
                 f"{get_settings().azure_openai_endpoint}openai/deployments/"
-                f"{get_settings().openai_model_id}/chat/completions?"
-                f"api-version={get_settings().openai_api_version}"
+                f"{get_settings().azure_openai_chat_deployment_name}/chat/completions?"
+                f"api-version={get_settings().azure_openai_api_version}"
             ),
             json=body,
             headers=headers,
