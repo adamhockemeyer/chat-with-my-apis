@@ -33,7 +33,15 @@ var policy1 = '''
     <policies>
       <inbound>
         <base />
-      <set-backend-service backend-id="{{OpenAI-Backend-Pool}}" />
+      <choose>
+          <!-- If we are calling the Assistants API, we can't load balance since all of the Assistant objects are scoped to a single instance of OpenAI-->
+          <when condition="@(context.Request.Url.Path.Contains("assistants"))">
+              <set-backend-service backend-id="{{non-load-balanced-openai-backend-name}}" />
+          </when>
+          <otherwise>
+              <set-backend-service backend-id="{{OpenAI-Backend-Pool}}" />
+          </otherwise>
+      </choose> 
       <authentication-managed-identity resource="https://cognitiveservices.azure.com" output-token-variable-name="managed-id-access-token" ignore-error="false" />
       <set-header name="Authorization" exists-action="override">
           <value>@("Bearer " + (string)context.Variables["managed-id-access-token"])</value>

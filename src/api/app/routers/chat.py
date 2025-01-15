@@ -34,14 +34,23 @@ async def post_create_agent():
 async def post_create_thread(agent_input: ChatCreateThreadInput):
     kernel = Kernel()
 
-    apim_agent = await AzureAssistantAgent.retrieve(
-        id=agent_input.agent_id,
-        kernel=kernel,
-        endpoint=get_settings().azure_openai_endpoint,
-        #api_key=get_settings().azure_openai_api_key,
-        default_headers={"Ocp-Apim-Subscription-Key": get_settings().azure_apim_service_subscription_key},
-        api_version=get_settings().azure_openai_api_version
+    apim_agent = None
+
+    try:
+        apim_agent = await AzureAssistantAgent.retrieve(
+            id=agent_input.agent_id,
+            kernel=kernel,
+            endpoint=get_settings().azure_openai_endpoint,
+            default_headers={"Ocp-Apim-Subscription-Key": get_settings().azure_apim_service_subscription_key},
+            api_version=get_settings().azure_openai_api_version
+            )
+        
+        apim_agent.client = apim_agent.client.copy(
+            default_headers={"Ocp-Apim-Subscription-Key": get_settings().azure_apim_service_subscription_key}
         )
+    except Exception as e:
+        logger.error(f"Exception occurred while retrieving agent with ID {agent_input.agent_id}. Exception: {e}")
+        logger.error(f"Agent with ID {agent_input.agent_id} not found")
 
     if not apim_agent:
         return {"error": f"Agent with ID {agent_input.agent_id} not found"}
@@ -59,13 +68,20 @@ async def build_chat_results(chat_input: ChatInput):
     with tracer.start_as_current_span(name="build_chat_results"):
         kernel = Kernel()
 
-        apim_agent = await AzureAssistantAgent.retrieve(
-            id=chat_input.agent_id,
-            kernel=kernel,
-            endpoint=get_settings().azure_openai_endpoint,
-            #api_key=get_settings().azure_openai_api_key,
-            default_headers={"Ocp-Apim-Subscription-Key": get_settings().azure_apim_service_subscription_key},
-            api_version=get_settings().azure_openai_api_version)
+        try:
+            apim_agent = await AzureAssistantAgent.retrieve(
+                id=chat_input.agent_id,
+                kernel=kernel,
+                endpoint=get_settings().azure_openai_endpoint,
+                default_headers={"Ocp-Apim-Subscription-Key": get_settings().azure_apim_service_subscription_key},
+                api_version=get_settings().azure_openai_api_version)
+            
+            apim_agent.client = apim_agent.client.copy(
+                default_headers={"Ocp-Apim-Subscription-Key": get_settings().azure_apim_service_subscription_key}
+            )
+        except Exception as e:
+            logger.error(f"Exception occurred while retrieving agent with ID {chat_input.agent_id}. Exception: {e}")
+            logger.error(f"Agent with ID {chat_input.agent_id} not found")
 
         if not apim_agent:
             yield f"Agent with ID {chat_input.agent_id} not found"

@@ -140,6 +140,16 @@ module apimNameValueOpenAIPool 'api-management/apim-namevalue.bicep' = {
   }
 }
 
+module apimNamedValueOpenAINonLoadBalancedPool 'api-management/apim-namevalue.bicep' = {
+  name: '${prefix}-apim-namedvalue-openai-non-load-balanced-pool'
+  params: {
+    name: 'non-load-balanced-openai-backend-name'
+    apiManagementServiceName: apim.outputs.name
+    displayName: 'non-load-balanced-openai-backend-name'
+    value: cognitiveServices1.outputs.name
+  }
+}
+
 module apimApisOpenAI 'api-management/apis/openai-api.bicep' = {
   name: '${prefix}-apim-openai-api'
   params: {
