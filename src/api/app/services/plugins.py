@@ -26,7 +26,7 @@ def sanitize_plugin_name(name):
 
 @tracer.start_as_current_span(name="add_openapi_plugin")
 async def add_openapi_plugin(kernel: Kernel, plugin_name:str, openapi_spec: str):
-    logger.info(f"Adding OpenAPI plugin '{plugin_name}'")
+    logger.info(f"  ⚡Adding OpenAPI Plugin '{plugin_name}'")
 
     parser = ResolvingParser(spec_string=openapi_spec, resolve_types = resolver.RESOLVE_FILES, strict=False, recursion_limit=10)
     parsed_spec = parser.specification
@@ -49,15 +49,15 @@ async def add_openapi_plugin(kernel: Kernel, plugin_name:str, openapi_spec: str)
 @tracer.start_as_current_span(name="add_apim_apis_by_product")
 async def add_apim_apis_by_product(kernel, product_id):
     # Get the access token
-    access_token = get_access_token()
+    #access_token = get_access_token()
 
     # Fetch the APIs that belong to the specified product
-    apis = fetch_apis_by_product(access_token, product_id)
+    apis = fetch_apis_by_product(product_id)
 
     # Add the OpenAPI plugins for each API
     plugin_names = set()
     for api in apis:
-        openapi_spec = fetch_openapi_spec(api['name'], access_token)
+        openapi_spec = fetch_openapi_spec(api['name'])
         # Sanitize the plugin_name
         name_candidate = sanitize_plugin_name(api['name'])
         # Ensure the plugin_name is unique

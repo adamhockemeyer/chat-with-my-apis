@@ -40,13 +40,14 @@ async def post_create_thread(agent_input: ChatCreateThreadInput):
         apim_agent = await AzureAssistantAgent.retrieve(
             id=agent_input.agent_id,
             kernel=kernel,
-            endpoint=get_settings().azure_openai_endpoint,
-            default_headers={"Ocp-Apim-Subscription-Key": get_settings().azure_apim_service_subscription_key},
+            endpoint=get_settings().azure_apim_endpoint,
+            default_headers={"Ocp-Apim-Subscription-Key": get_settings().azure_apim_apichat_subscription_key},
             api_version=get_settings().azure_openai_api_version
             )
+    
         
         apim_agent.client = apim_agent.client.copy(
-            default_headers={"Ocp-Apim-Subscription-Key": get_settings().azure_apim_service_subscription_key}
+            default_headers={"Ocp-Apim-Subscription-Key": get_settings().azure_apim_apichat_subscription_key}
         )
     except Exception as e:
         logger.error(f"Exception occurred while retrieving agent with ID {agent_input.agent_id}. Exception: {e}")
@@ -56,7 +57,7 @@ async def post_create_thread(agent_input: ChatCreateThreadInput):
         return {"error": f"Agent with ID {agent_input.agent_id} not found"}
 
     thread_id = await apim_agent.create_thread()
-
+    
     return {"thread_id": thread_id}
 
 @tracer.start_as_current_span(name="chat")
@@ -72,12 +73,12 @@ async def build_chat_results(chat_input: ChatInput):
             apim_agent = await AzureAssistantAgent.retrieve(
                 id=chat_input.agent_id,
                 kernel=kernel,
-                endpoint=get_settings().azure_openai_endpoint,
-                default_headers={"Ocp-Apim-Subscription-Key": get_settings().azure_apim_service_subscription_key},
+                endpoint=get_settings().azure_apim_endpoint,
+                default_headers={"Ocp-Apim-Subscription-Key": get_settings().azure_apim_apichat_subscription_key},
                 api_version=get_settings().azure_openai_api_version)
             
             apim_agent.client = apim_agent.client.copy(
-                default_headers={"Ocp-Apim-Subscription-Key": get_settings().azure_apim_service_subscription_key}
+                default_headers={"Ocp-Apim-Subscription-Key": get_settings().azure_apim_apichat_subscription_key}
             )
         except Exception as e:
             logger.error(f"Exception occurred while retrieving agent with ID {chat_input.agent_id}. Exception: {e}")
@@ -89,9 +90,12 @@ async def build_chat_results(chat_input: ChatInput):
         # Add the APIs from the specified product
         await add_apim_apis_by_product(kernel, get_settings().azure_apim_service_product_id)
 
-        await apim_agent.add_chat_message(thread_id=chat_input.thread_id,
-                                          message=ChatMessageContent(role=AuthorRole.USER,
-                                                                     content=chat_input.content))
+        try:
+            await apim_agent.add_chat_message(thread_id=chat_input.thread_id,
+                                              message=ChatMessageContent(role=AuthorRole.USER,
+                                                                         content=chat_input.content))
+        except Exception as e:
+            logger.error(f"Exception occurred while adding chat message to thread with Agent ID {chat_input.agent_id}, Thread ID {chat_input.thread_id}. Exception: {e}")
 
         async for content in apim_agent.invoke_stream(thread_id=chat_input.thread_id):
             yield content.content
