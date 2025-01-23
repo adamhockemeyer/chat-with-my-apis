@@ -13,7 +13,7 @@ from app.models.chat_input import ChatInput
 from app.models.chat_create_thread_input import ChatCreateThreadInput
 from app.agents.apim_agent import create_apim_agent
 from app.config import get_settings
-from app.services.plugins import add_apim_apis_by_product
+from app.services.plugins import add_apim_apis_by_product, add_apim_api
 
 logger = logging.getLogger("uvicorn.error")
 tracer = trace.get_tracer(__name__)
@@ -87,8 +87,19 @@ async def build_chat_results(chat_input: ChatInput):
         if not apim_agent:
             yield f"Agent with ID {chat_input.agent_id} not found"
 
-        # Add the APIs from the specified product
-        await add_apim_apis_by_product(kernel, get_settings().azure_apim_service_product_id)
+        # # Add the APIs from the specified product
+        # await add_apim_apis_by_product(kernel, get_settings().azure_apim_service_product_id)
+
+        if chat_input.product_ids is not None:
+            for product_id in chat_input.product_ids:
+                await add_apim_apis_by_product(kernel, product_id)
+        
+        if chat_input.api_ids is not None:
+            for api_id in chat_input.api_ids:
+                await add_apim_api(kernel, api_id)
+
+        if chat_input.product_ids is None and chat_input.api_ids is None:
+            logger.info("   ⚠️ No product_ids or api_ids provided. Using default Semantic Kernel functionality.")
 
         try:
             await apim_agent.add_chat_message(thread_id=chat_input.thread_id,

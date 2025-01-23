@@ -2,7 +2,7 @@
 
 import { createStreamableValue } from 'ai/rsc';
 
-export async function chat(input: string, threadId: string, agentId: string) {
+export async function chat(input: string, threadId: string, agentId: string, product_ids: string[] | null, api_ids: string[] | null) {
     'use server';
 
 
@@ -46,6 +46,8 @@ export async function chat(input: string, threadId: string, agentId: string) {
                     agent_id: agentId,
                     thread_id: threadId,
                     content: input,
+                    product_ids: product_ids,
+                    api_ids: api_ids,
                 }),
             });
 

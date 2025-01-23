@@ -13,12 +13,15 @@ import { useParams } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
 import { TypingAnimation } from '../../components/TypingAnimation'
 import { chat } from '../../actions/sk_chat'
+import { fetchApisByProductId } from '../../actions/apis'
+
+const GENERIC_CHAT_APIM_PRODUCT_ID = process.env.GENERIC_CHAT_APIM_PRODUCT_ID ?? 'generic-chat-agent';
 
 type Feedback = 'up' | 'down' | null;
 
 export default function ChatPage() {
   const { agentId } = useParams()
-  const [selectedApis, setSelectedApis] = useState<string[]>([])
+  const [selectedApis, setSelectedApis] = useState<Array<{ id: string; name: string }>>([]);
   const [showApiList, setShowApiList] = useState(false)
   const [apiSearch, setApiSearch] = useState('')
   const [apiListPosition, setApiListPosition] = useState({ top: 0, left: 0, bottom: 0 })
@@ -46,8 +49,8 @@ export default function ChatPage() {
       // Add user message immediately
       setMessages((prev) => [...prev, { role: 'user', content: input }, { role: 'assistant', content: '' }])
 
-      // Do not destructure. Just get “stream”
-      const { output, agentId, threadId } = await chat(input, chatThreadId, chatAgentId)
+
+      const { output, agentId, threadId } = await chat(input, chatThreadId, chatAgentId, null, selectedApis.map((api) => api.id))
 
       setChatThreadId(threadId)
       setChatAgentId(agentId)
@@ -87,17 +90,28 @@ export default function ChatPage() {
     handleSubmit(e)
   }
 
-  const handleApiSelect = (apiName: string) => {
-    if (selectedApis.includes(apiName)) {
-      setSelectedApis(selectedApis.filter(api => api !== apiName))
-    } else {
-      setSelectedApis([...selectedApis, apiName])
-    }
-    closeApiList()
-  }
+  const handleApiSelect = (api: { id: string; name: string }) => {
+    setSelectedApis((prev) => {
+      // Avoid duplicates
+      if (!prev.find((a) => a.id === api.id)) {
+        return [...prev, api];
+      }
+      return prev;
+    });
+  };
 
-  const handleRemoveApi = (apiName: string) => {
-    setSelectedApis(selectedApis.filter(api => api !== apiName))
+  // const handleApiSelect = (apiName: string) => {
+  //   if (selectedApis.includes(apiName)) {
+  //     setSelectedApis(selectedApis.filter(api => api !== apiName))
+  //   } else {
+  //     setSelectedApis([...selectedApis, apiName])
+  //   }
+
+  //   closeApiList()
+  // }
+
+  const handleRemoveApi = (apiId: string) => {
+    setSelectedApis(selectedApis.filter(api => api.id !== apiId))
   }
 
   const closeApiList = () => {
@@ -157,12 +171,12 @@ export default function ChatPage() {
   useEffect(() => {
     async function fetchApis() {
       try {
-        const response = await fetch('/api/apis')
-        if (!response.ok) {
-          throw new Error('Failed to fetch APIs')
+        const data = await fetchApisByProductId(GENERIC_CHAT_APIM_PRODUCT_ID)
+        if (!data) {
+          throw new Error(`Failed to fetch APIs for product id: ${GENERIC_CHAT_APIM_PRODUCT_ID}`)
         }
-        const data = await response.json()
-        setApis(data)
+
+        setApis(data.map((api: any) => ({ id: api.api_id, name: api.name })))
       } catch (error) {
         console.error('Error fetching APIs:', error)
       }
@@ -243,11 +257,11 @@ export default function ChatPage() {
           {isGeneralChat && (
             <div className="flex flex-wrap gap-2 mb-2">
               {selectedApis.map(api => (
-                <span key={api} className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded flex items-center">
-                  {api}
+                <span key={api.id} className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded flex items-center">
+                  {api.name}
                   <button
                     type="button"
-                    onClick={() => handleRemoveApi(api)}
+                    onClick={() => handleRemoveApi(api.id)}
                     className="ml-1 text-blue-800 hover:text-blue-900 focus:outline-none"
                     aria-label={`Remove ${api}`}
                   >

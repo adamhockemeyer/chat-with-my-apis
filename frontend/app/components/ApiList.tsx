@@ -7,9 +7,9 @@ import { X } from 'lucide-react'
 
 interface ApiListProps {
   apis: { id: string; name: string }[]
-  selectedApis: string[]
+  selectedApis: { id: string; name: string }[]
   apiSearch: string
-  onApiSelect: (apiName: string) => void
+  onApiSelect: (api:{id: string, name:string}) => void
   onApiSearchChange: (search: string) => void
   onClose: () => void
   position: { top: number; left: number; bottom: number }
@@ -76,8 +76,8 @@ export function ApiList({
         {apis.map(api => (
           <div
             key={api.id}
-            className={`p-2 cursor-pointer hover:bg-gray-100 ${selectedApis.includes(api.name) ? 'bg-blue-100' : ''}`}
-            onClick={() => onApiSelect(api.name)}
+            className={`p-2 cursor-pointer hover:bg-gray-100 ${selectedApis.includes(api) ? 'bg-blue-100' : ''}`}
+            onClick={() => onApiSelect(api)}
           >
             {api.name}
           </div>
