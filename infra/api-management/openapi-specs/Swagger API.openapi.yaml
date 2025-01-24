@@ -116,7 +116,51 @@ paths:
             default: '2022-08-01'
       responses:
         '200':
-          description: 
+          description: ''
+  /products:
+    get:
+      summary: Products
+      operationId: products
+      parameters:
+        - name: api-version
+          in: query
+          description: Version of Azure Management Rest API Endpoint
+          required: true
+          schema:
+            enum:
+              - '2022-08-01'
+            type: string
+            default: '2022-08-01'
+        - name: $filter
+          in: query
+          description: 'Odata filter. (i.e. contains(name,''agent'')'
+          required: true
+          schema:
+            enum:
+              - 'contains(name,''agent'')'
+            type: string
+            default: 'contains(name,''agent'')'
+      responses:
+        '200':
+          description: ''
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/apim-products-response'
+              example:
+                value:
+                  - id: /subscriptions/7541bc3d-10b0-4ed6-a6cd-52daf5eb8719/resourceGroups/apichat-rg/providers/Microsoft.ApiManagement/service/apim-55vh-apichat/products/generic-chat-agent
+                    type: Microsoft.ApiManagement/service/products
+                    name: generic-chat-agent
+                    properties:
+                      displayName: Generic Chat Agent
+                      description: This product has all available APIs enabled for the Chat Agent
+                      terms: API Chat Product Terms
+                      subscriptionRequired: true
+                      approvalRequired: false
+                      subscriptionsLimit: 1
+                      state: published
+                count: 1
 components:
   schemas:
     product-apis-response:
@@ -161,6 +205,44 @@ components:
                   subscriptionKeyParameterNames: { }
                   isCurrent:
                     type: boolean
+        count:
+          type: integer
+    apim-products-response:
+      type: object
+      properties:
+        value:
+          type: array
+          items:
+            required:
+              - id
+              - type
+              - name
+              - properties
+            type: object
+            properties:
+              id:
+                type: string
+              type:
+                type: string
+              name:
+                type: string
+              properties:
+                type: object
+                properties:
+                  displayName:
+                    type: string
+                  description:
+                    type: string
+                  terms:
+                    type: string
+                  subscriptionRequired:
+                    type: boolean
+                  approvalRequired:
+                    type: boolean
+                  subscriptionsLimit:
+                    type: integer
+                  state:
+                    type: string
         count:
           type: integer
   securitySchemes:

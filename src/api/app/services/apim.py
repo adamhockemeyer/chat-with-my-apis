@@ -72,4 +72,21 @@ def fetch_named_value(named_value_id, access_token=None):
     response.raise_for_status()
     return response.json()['properties']['value']
 
-__all__ = ["get_access_token", "fetch_apis_by_product", "fetch_openapi_spec", "fetch_named_value"]
+@tracer.start_as_current_span(name="fetch_products_name_contains")
+def fetch_products_name_contains(name_contains_value, access_token=None):
+    headers = {
+        'Content-Type': 'application/json'
+    }
+    if access_token:
+        headers['Authorization'] = f'Bearer {access_token}'
+    if azure_apim_service_subscription_key:
+        headers['Ocp-Apim-Subscription-Key'] = azure_apim_service_subscription_key
+
+    url = f'{azure_apim_base_url}/products?api-version={get_settings().azure_apim_service_api_version}&$filter=contains(name,\'{name_contains_value}\')'
+    response = requests.get(url,
+                            headers=headers,
+                            timeout=30)
+    response.raise_for_status()
+    return response.json()['value']
+
+__all__ = ["get_access_token", "fetch_apis_by_product", "fetch_openapi_spec", "fetch_named_value", "fetch_products_name_contains"]

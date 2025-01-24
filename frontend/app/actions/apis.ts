@@ -7,6 +7,11 @@ interface ApiResponse {
     description: string | null;
 }
 
+export interface ProductResponse {
+    product_id: string;
+    name: string;
+}
+
 export async function fetchApisByProductId(productId: string): Promise<ApiResponse[]> {
     try {
         const baseUrl = process.env.SK_API_ENDPOINT ?? 'http://127.0.0.1:8000';
@@ -23,6 +28,26 @@ export async function fetchApisByProductId(productId: string): Promise<ApiRespon
         return await response.json();
     } catch (error) {
         console.error(`Error fetching APIs for product ID ${productId}:`, error);
+        throw error;
+    }
+};
+
+export async function fetchAgentProducts(): Promise<ProductResponse[]> {
+    try {
+        const baseUrl = process.env.SK_API_ENDPOINT ?? 'http://127.0.0.1:8000';
+
+        const response = await fetch(`${baseUrl}/v1/agent-products`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        if (!response.ok) {
+            throw new Error(`Error fetching agent products: ${response.statusText}`);
+        }
+        return await response.json();
+    } catch (error) {
+        console.error(`Error fetching agent products:`, error);
         throw error;
     }
 };

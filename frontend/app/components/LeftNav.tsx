@@ -5,6 +5,8 @@ import { MessageSquare, Bot, PlusCircle, FileText, ChevronDown, ChevronRight } f
 import { Button } from "@/components/ui/button"
 import { AddAgentModal } from './AddAgentModal'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
+import { fetchAgentProducts, ProductResponse } from "../actions/apis"
+
 
 type API = {
   id: string
@@ -47,11 +49,12 @@ export default function LeftNav() {
   useEffect(() => {
     async function fetchAgents() {
       try {
-        const response = await fetch('/api/agents')
-        if (!response.ok) {
+        //const response = await fetch('/api/agents')
+        const response = await fetchAgentProducts()
+        if (!response) {
           throw new Error('Failed to fetch agents')
         }
-        const data = await response.json()
+        //const data = await response.json()
         setAgents([
           {
             id: 'general',
@@ -60,9 +63,12 @@ export default function LeftNav() {
             icon: <MessageSquare size={20} />,
             apis: []
           },
-          ...data.map((agent: Agent) => ({
-            ...agent,
+          ...response.map((product: ProductResponse) => ({
+            id: product.product_id,
+            name: product.name,
+            description: 'Agent description',
             icon: <Bot size={20} />,
+            apis: []
           }))
         ])
       } catch (error) {
