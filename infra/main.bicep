@@ -192,7 +192,7 @@ module apimApisMaps 'api-management/apis/maps-api.bicep' = {
   }
 }
 
-module apimProduct 'api-management/apim-product.bicep' = {
+module apimProduct_generic_chat_agent 'api-management/apim-product.bicep' = {
   name: '${prefix}-apim-product-generic-chat-agent'
   params: {
     apiManagementServiceName: apim.outputs.name
@@ -203,6 +203,16 @@ module apimProduct 'api-management/apim-product.bicep' = {
     productApis: [
       apimApisMaps.outputs.id
     ]
+  }
+}
+
+module apimNameValue_generic_chat_agent_instructions 'api-management/apim-namevalue.bicep' = {
+  name: '${prefix}-apim-namedvalue-generic-chat-agent-instructions'
+  params: {
+    apiManagementServiceName: apim.outputs.name
+    name: '${apimProduct_generic_chat_agent.outputs.productName}-instructions'
+    displayName: '${apimProduct_generic_chat_agent.outputs.productName}-instructions'
+    value: loadTextContent('api-management/named-values/generic-chat-agent-instructions.md')
   }
 }
 
@@ -330,7 +340,7 @@ module webContainerApp 'container-apps/container-app-upsert.bicep' = {
       }
       {
         name: 'GENERIC_CHAT_APIM_PRODUCT_ID'
-        value: apimProduct.outputs.productName
+        value: apimProduct_generic_chat_agent.outputs.productName
       }
     ]
     targetPort: 3000

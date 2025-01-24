@@ -15,12 +15,15 @@ router = APIRouter()
 @router.get("/apis/{product_id}", response_model=List[ApiResponse])
 async def get_apis(product_id: str):
     apis = []
-    product_apis = fetch_apis_by_product(product_id)
     logger.info(f"  ⚡Fetching APIs for product '{product_id}'")
-    logger.info(f"  ⚡APIs: {product_apis}")
-    for api in product_apis:
-        apis.append(ApiResponse(
-            api_id=api['name'],
-            name=api['properties'].get('displayName', 'No Name')
-        ))
+    try:
+        product_apis = fetch_apis_by_product(product_id)
+        for api in product_apis:
+            apis.append(ApiResponse(
+                api_id=api['name'],
+                name=api['properties'].get('displayName', 'No Name')
+            ))
+    except Exception as e:
+        logger.error(f"Exception occurred while fetching APIs for product '{product_id}'. Exception: {e}")
+    
     return apis

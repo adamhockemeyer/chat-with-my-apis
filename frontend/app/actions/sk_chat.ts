@@ -2,17 +2,17 @@
 
 import { createStreamableValue } from 'ai/rsc';
 
-export async function chat(input: string, threadId: string, agentId: string, product_ids: string[] | null, api_ids: string[] | null) {
+export async function chat(input: string, threadId: string, agentId: string, product_id: string | null, api_ids: string[] | null) {
     'use server';
-
 
     console.log('chat:', input, threadId, agentId);
 
     const baseUrl = process.env.SK_API_ENDPOINT ?? 'http://127.0.0.1:8000';
 
     // If agentId is not provided, create a new agent
+    // Passing in the product_id, allows the agent to fetch the it's product specific instructions/prompt rather than using a generic one.
     if (!agentId) {
-        const agentResponse = await fetch(`${baseUrl}/v1/create_agent`, {
+        const agentResponse = await fetch(`${baseUrl}/v1/create_agent?apim_product_id=${product_id}`, {
             method: 'POST'
         });
         const agentData = await agentResponse.json();
@@ -46,7 +46,7 @@ export async function chat(input: string, threadId: string, agentId: string, pro
                     agent_id: agentId,
                     thread_id: threadId,
                     content: input,
-                    product_ids: product_ids,
+                    product_id: product_id,
                     api_ids: api_ids,
                 }),
             });

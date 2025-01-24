@@ -50,6 +50,7 @@ paths:
   '/products/{product_id}/apis':
     get:
       summary: Product APIs
+      description: Product APIs
       operationId: product-apis
       parameters:
         - name: product_id
@@ -93,6 +94,29 @@ paths:
                       subscriptionKeyParameterNames: { }
                       isCurrent: true
                 count: 0
+  '/namedValues/{named-value-id}':
+    get:
+      summary: Named Values
+      description: Returns the value for a named value in API Management.
+      operationId: named-values
+      parameters:
+        - name: named-value-id
+          in: path
+          description: Id of the named value in API Management
+          required: true
+          schema:
+            type: string
+        - name: api-version
+          in: query
+          description: Version of Azure Management REST API
+          schema:
+            enum:
+              - '2022-08-01'
+            type: string
+            default: '2022-08-01'
+      responses:
+        '200':
+          description: 
 components:
   schemas:
     product-apis-response:

@@ -54,4 +54,22 @@ def fetch_openapi_spec(api_id, access_token=None):
     response.raise_for_status()
     return response.text
 
-__all__ = ["get_access_token", "fetch_apis_by_product", "fetch_openapi_spec"]
+# Function to fetch named values
+@tracer.start_as_current_span(name="fetch_named_value")
+def fetch_named_value(named_value_id, access_token=None):
+    headers = {
+        'Content-Type': 'application/json'
+    }
+    if access_token:
+        headers['Authorization'] = f'Bearer {access_token}'
+    if azure_apim_service_subscription_key:
+        headers['Ocp-Apim-Subscription-Key'] = azure_apim_service_subscription_key
+
+    url = f'{azure_apim_base_url}/namedValues/{named_value_id}?api-version={get_settings().azure_apim_service_api_version}'
+    response = requests.get(url,
+                            headers=headers,
+                            timeout=30)
+    response.raise_for_status()
+    return response.json()['properties']['value']
+
+__all__ = ["get_access_token", "fetch_apis_by_product", "fetch_openapi_spec", "fetch_named_value"]

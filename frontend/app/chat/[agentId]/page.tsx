@@ -20,7 +20,7 @@ const GENERIC_CHAT_APIM_PRODUCT_ID = process.env.GENERIC_CHAT_APIM_PRODUCT_ID ??
 type Feedback = 'up' | 'down' | null;
 
 export default function ChatPage() {
-  const { agentId } = useParams()
+  const { agentId } = useParams() as { agentId: string }
   const [selectedApis, setSelectedApis] = useState<Array<{ id: string; name: string }>>([]);
   const [showApiList, setShowApiList] = useState(false)
   const [apiSearch, setApiSearch] = useState('')
@@ -50,10 +50,11 @@ export default function ChatPage() {
       setMessages((prev) => [...prev, { role: 'user', content: input }, { role: 'assistant', content: '' }])
 
 
-      const { output, agentId, threadId } = await chat(input, chatThreadId, chatAgentId, null, selectedApis.map((api) => api.id))
+      const productId = isGeneralChat ? GENERIC_CHAT_APIM_PRODUCT_ID : agentId;
+      const { output, agentId: llmAgentId, threadId: llmThreadId } = await chat(input, chatThreadId, chatAgentId, productId, selectedApis.map((api) => api.id))
 
-      setChatThreadId(threadId)
-      setChatAgentId(agentId)
+      setChatThreadId(llmThreadId)
+      setChatAgentId(llmAgentId)
 
 
       let fullResponse = ''

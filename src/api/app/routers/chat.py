@@ -1,6 +1,6 @@
 import logging
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 from fastapi.responses import StreamingResponse
 from opentelemetry import trace
 
@@ -14,6 +14,7 @@ from app.models.chat_create_thread_input import ChatCreateThreadInput
 from app.agents.apim_agent import create_apim_agent
 from app.config import get_settings
 from app.services.plugins import add_apim_apis_by_product, add_apim_api
+from app.services.apim import fetch_named_value
 
 logger = logging.getLogger("uvicorn.error")
 tracer = trace.get_tracer(__name__)
@@ -22,8 +23,21 @@ router = APIRouter()
 
 @tracer.start_as_current_span(name="create_agent")
 @router.post("/create_agent")
-async def post_create_agent():
+async def post_create_agent(apim_product_id: str = Query(
+        default=None, 
+        description="(Optional) The APIM product ID from which to fetch the named value agent instructions."
+    )):
     kernel = Kernel()
+
+    if apim_product_id:
+        try:
+            named_value = fetch_named_value(f"{apim_product_id}-instructions")
+            if named_value:
+                instructions = named_value
+                apim_agent = await create_apim_agent(kernel, agent_name=apim_product_id, instructions=instructions)
+                return {"agent_id": apim_agent.assistant.id}
+        except Exception as e:
+            logger.error(f"Exception occurred while fetching named value for agent ID {apim_product_id}. Exception: {e}")
 
     apim_agent = await create_apim_agent(kernel)
 
@@ -87,19 +101,15 @@ async def build_chat_results(chat_input: ChatInput):
         if not apim_agent:
             yield f"Agent with ID {chat_input.agent_id} not found"
 
-        # # Add the APIs from the specified product
-        # await add_apim_apis_by_product(kernel, get_settings().azure_apim_service_product_id)
-
-        if chat_input.product_ids is not None:
-            for product_id in chat_input.product_ids:
-                await add_apim_apis_by_product(kernel, product_id)
+        if chat_input.product_id:
+            await add_apim_apis_by_product(kernel, chat_input.product_id)
         
-        if chat_input.api_ids is not None:
+        if chat_input.api_ids:
             for api_id in chat_input.api_ids:
                 await add_apim_api(kernel, api_id)
 
-        if chat_input.product_ids is None and chat_input.api_ids is None:
-            logger.info("   ⚠️ No product_ids or api_ids provided. Using default Semantic Kernel functionality.")
+        if not chat_input.product_id and not chat_input.api_ids:
+            logger.info("   ⚠️ No product_id or api_ids provided. Using default Semantic Kernel functionality.")
 
         try:
             await apim_agent.add_chat_message(thread_id=chat_input.thread_id,

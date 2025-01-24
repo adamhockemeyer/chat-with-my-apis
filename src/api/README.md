@@ -11,3 +11,6 @@ pip install -r requirements.txt
 Run app:
 
 `python -m uvicorn app.main:app --env-file .env --log-level debug`
+
+
+
