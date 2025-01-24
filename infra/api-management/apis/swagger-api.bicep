@@ -34,14 +34,23 @@ module namedValueAPIMServiceUrl '../apim-namevalue.bicep' = {
   }
 }
 
-resource operationOpenAPISpec 'Microsoft.ApiManagement/service/apis/operations@2024-06-01-preview' existing = {
-  name: 'openapi-spec'
-  parent: apiDefinition
-}
+// resource operationOpenAPISpec 'Microsoft.ApiManagement/service/apis/operations@2024-06-01-preview' existing = {
+//   name: 'openapi-spec'
+//   parent: apiDefinition
+// }
 
-resource operationPolicy 'Microsoft.ApiManagement/service/apis/operations/policies@2023-09-01-preview' = {
-  parent: operationOpenAPISpec
+// resource operationPolicy 'Microsoft.ApiManagement/service/apis/operations/policies@2023-09-01-preview' = {
+//   parent: operationOpenAPISpec
+//   name: 'policy'
+//   properties: {
+//     format: 'rawxml'
+//     value: policy1
+//   }
+// }
+
+resource apiPolicy 'Microsoft.ApiManagement/service/apis/policies@2023-09-01-preview' = {
   name: 'policy'
+  parent: apiDefinition
   properties: {
     format: 'rawxml'
     value: policy1
@@ -52,43 +61,16 @@ var policy1 = '''
 <policies>
     <inbound>
         <base />
-        <!-- Cache lookup before making the API management call -->
-        <cache-lookup-value key="@(context.Request.MatchedParameters.GetValueOrDefault("api-id",""))" variable-name="cachedSpec" />
-        <!--Dynamically call the APIM Management API-->
-        <choose>
-            <when condition="@(!context.Variables.ContainsKey("cachedSpec"))">
-                <send-request mode="new" response-variable-name="result" timeout="60" ignore-error="true">
-                    <set-url>@("{{APIM-Management-Service-URL}}" + "/apis/" + context.Request.MatchedParameters.GetValueOrDefault("api-id","") + "?export=true&format=openapi&api-version=2022-09-01-preview")</set-url>
-                    <set-method>GET</set-method>
-                    <authentication-managed-identity resource="https://management.azure.com/" />
-                </send-request>
-                <set-variable name="responseBody" value="@((string)(((IResponse)context.Variables["result"]).Body.As<JObject>()["value"]))" />
-                <cache-store-value key="@(context.Request.MatchedParameters.GetValueOrDefault("api-id",""))" value="@((string)context.Variables["responseBody"])" duration="300" />
-                <!--Return the response-->
-                <return-response>
-                    <set-status code="200" reason="OK" />
-                    <set-header name="Content-Type" exists-action="override">
-                        <value>application/yaml</value>
-                    </set-header>
-                    <set-body>@((string)context.Variables["responseBody"])</set-body>
-                </return-response>
-            </when>
-            <otherwise>
-                <return-response>
-                    <set-status code="200" reason="OK" />
-                    <set-header name="Content-Type" exists-action="override">
-                        <value>application/yaml</value>
-                    </set-header>
-                    <set-body>@((string)context.Variables["cachedSpec"])</set-body>
-                </return-response>
-            </otherwise>
-        </choose>
+        <set-backend-service base-url="{{APIM-Management-Service-URL}}" />
+        <authentication-managed-identity resource="https://management.azure.com/" />
+        <cache-lookup vary-by-developer="true" vary-by-developer-groups="true" allow-private-response-caching="true" must-revalidate="true" downstream-caching-type="none" />
     </inbound>
     <backend>
         <base />
     </backend>
     <outbound>
         <base />
+        <cache-store duration="120" cache-response="true" />
     </outbound>
     <on-error>
         <base />

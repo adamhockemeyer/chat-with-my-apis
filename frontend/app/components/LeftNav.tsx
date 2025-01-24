@@ -5,6 +5,8 @@ import { MessageSquare, Bot, PlusCircle, FileText, ChevronDown, ChevronRight } f
 import { Button } from "@/components/ui/button"
 import { AddAgentModal } from './AddAgentModal'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
+import { fetchAgentProducts, fetchApisByProductId, ProductResponse } from "../actions/apis"
+
 
 type API = {
   id: string
@@ -19,6 +21,8 @@ type Agent = {
   apis: string[]
 }
 
+const GENERIC_CHAT_APIM_PRODUCT_ID = process.env.GENERIC_CHAT_APIM_PRODUCT_ID ?? 'generic-chat-agent';
+
 export default function LeftNav() {
   const [agents, setAgents] = useState<Agent[]>([])
   const [isAddAgentModalOpen, setIsAddAgentModalOpen] = useState(false)
@@ -30,11 +34,15 @@ export default function LeftNav() {
   useEffect(() => {
     async function fetchAPIs() {
       try {
-        const response = await fetch('/api/apis')
-        if (!response.ok) {
+        //const response = await fetch('/api/apis')
+        const response = await fetchApisByProductId(GENERIC_CHAT_APIM_PRODUCT_ID)
+        if (!response) {
           throw new Error('Failed to fetch APIs')
         }
-        const data = await response.json()
+        const data = response.map((api) => ({
+          id: api.api_id,
+          name: api.name,
+        }))
         setAvailableAPIs(data)
       } catch (error) {
         console.error('Error fetching APIs:', error)
@@ -47,11 +55,12 @@ export default function LeftNav() {
   useEffect(() => {
     async function fetchAgents() {
       try {
-        const response = await fetch('/api/agents')
-        if (!response.ok) {
+        //const response = await fetch('/api/agents')
+        const response = await fetchAgentProducts()
+        if (!response) {
           throw new Error('Failed to fetch agents')
         }
-        const data = await response.json()
+        //const data = await response.json()
         setAgents([
           {
             id: 'general',
@@ -60,9 +69,12 @@ export default function LeftNav() {
             icon: <MessageSquare size={20} />,
             apis: []
           },
-          ...data.map((agent: Agent) => ({
-            ...agent,
+          ...response.map((product: ProductResponse) => ({
+            id: product.product_id,
+            name: product.name,
+            description: 'Agent description',
             icon: <Bot size={20} />,
+            apis: []
           }))
         ])
       } catch (error) {

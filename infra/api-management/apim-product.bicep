@@ -36,3 +36,6 @@ resource productsApis 'Microsoft.ApiManagement/service/products/apiLinks@2024-06
     apiId: api
   }
 }]
+
+output productName string = product.name
+output productDisplayName string = product.properties.displayName

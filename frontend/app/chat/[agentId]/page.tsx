@@ -13,16 +13,21 @@ import { useParams } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
 import { TypingAnimation } from '../../components/TypingAnimation'
 import { chat } from '../../actions/sk_chat'
+import { fetchApisByProductId, fetchAgentProducts } from '../../actions/apis'
+
+const GENERIC_CHAT_APIM_PRODUCT_ID = process.env.GENERIC_CHAT_APIM_PRODUCT_ID ?? 'generic-chat-agent';
 
 type Feedback = 'up' | 'down' | null;
 
 export default function ChatPage() {
-  const { agentId } = useParams()
-  const [selectedApis, setSelectedApis] = useState<string[]>([])
+  const { agentId } = useParams() as { agentId: string }
+  const [selectedApis, setSelectedApis] = useState<Array<{ id: string; name: string }>>([]);
   const [showApiList, setShowApiList] = useState(false)
   const [apiSearch, setApiSearch] = useState('')
   const [apiListPosition, setApiListPosition] = useState({ top: 0, left: 0, bottom: 0 })
   const inputRef = useRef<HTMLInputElement>(null)
+  const formRef = useRef<HTMLFormElement>(null);
+  const submitButtonRef = useRef<HTMLButtonElement>(null);
   const [apis, setApis] = useState<Array<{ id: string; name: string }>>([])
   const [feedback, setFeedback] = useState<{ [key: string]: Feedback }>({})
 
@@ -34,6 +39,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Array<{ role: string; content: string }>>([])
   const [chatResponses, setChatResponses] = useState<string>("") // Declare the setChatResponses function
   const isGeneralChat = agentId === 'general';
+  const [agentName, setAgentName] = useState<string>('');
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -46,11 +52,12 @@ export default function ChatPage() {
       // Add user message immediately
       setMessages((prev) => [...prev, { role: 'user', content: input }, { role: 'assistant', content: '' }])
 
-      // Do not destructure. Just get “stream”
-      const { output, agentId, threadId } = await chat(input, chatThreadId, chatAgentId)
 
-      setChatThreadId(threadId)
-      setChatAgentId(agentId)
+      const productId = isGeneralChat ? GENERIC_CHAT_APIM_PRODUCT_ID : agentId;
+      const { output, agentId: llmAgentId, threadId: llmThreadId } = await chat(input, chatThreadId, chatAgentId, productId, selectedApis.map((api) => api.id))
+
+      setChatThreadId(llmThreadId)
+      setChatAgentId(llmAgentId)
 
 
       let fullResponse = ''
@@ -58,7 +65,7 @@ export default function ChatPage() {
 
       // Use readStreamableValue to get chunks from the SSE stream
       for await (const chunk of readStreamableValue(output)) {
-        console.log('chunk:', chunk)
+        //console.log('chunk:', chunk)
         fullResponse += chunk
         setMessages((prev) =>
           prev.map((item, idx) =>
@@ -87,17 +94,28 @@ export default function ChatPage() {
     handleSubmit(e)
   }
 
-  const handleApiSelect = (apiName: string) => {
-    if (selectedApis.includes(apiName)) {
-      setSelectedApis(selectedApis.filter(api => api !== apiName))
-    } else {
-      setSelectedApis([...selectedApis, apiName])
-    }
-    closeApiList()
-  }
+  const handleApiSelect = (api: { id: string; name: string }) => {
+    setSelectedApis((prev) => {
+      // Avoid duplicates
+      if (!prev.find((a) => a.id === api.id)) {
+        return [...prev, api];
+      }
+      return prev;
+    });
+  };
 
-  const handleRemoveApi = (apiName: string) => {
-    setSelectedApis(selectedApis.filter(api => api !== apiName))
+  // const handleApiSelect = (apiName: string) => {
+  //   if (selectedApis.includes(apiName)) {
+  //     setSelectedApis(selectedApis.filter(api => api !== apiName))
+  //   } else {
+  //     setSelectedApis([...selectedApis, apiName])
+  //   }
+
+  //   closeApiList()
+  // }
+
+  const handleRemoveApi = (apiId: string) => {
+    setSelectedApis(selectedApis.filter(api => api.id !== apiId))
   }
 
   const closeApiList = () => {
@@ -132,6 +150,16 @@ export default function ChatPage() {
     console.log(`Feedback for message ${messageId}: ${feedbackType}`)
   }
 
+  const handleExplain = (messageId: number) => {
+    setInput('Can you explain the steps you took to get this answer.');
+
+    // Then wait briefly to ensure React state updates
+    setTimeout(() => {
+      console.log(formRef.current);
+      formRef.current?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    }, 100);
+  };
+
   useEffect(() => {
     if (input.endsWith('@') && isGeneralChat) {
       const rect = inputRef.current?.getBoundingClientRect()
@@ -157,12 +185,12 @@ export default function ChatPage() {
   useEffect(() => {
     async function fetchApis() {
       try {
-        const response = await fetch('/api/apis')
-        if (!response.ok) {
-          throw new Error('Failed to fetch APIs')
+        const data = await fetchApisByProductId(GENERIC_CHAT_APIM_PRODUCT_ID)
+        if (!data) {
+          throw new Error(`Failed to fetch APIs for product id: ${GENERIC_CHAT_APIM_PRODUCT_ID}`)
         }
-        const data = await response.json()
-        setApis(data)
+
+        setApis(data.map((api: any) => ({ id: api.api_id, name: api.name })))
       } catch (error) {
         console.error('Error fetching APIs:', error)
       }
@@ -171,10 +199,33 @@ export default function ChatPage() {
     fetchApis()
   }, [])
 
+  useEffect(() => {
+    async function fetchAgentName() {
+      if (agentId === 'general') {
+        setAgentName('General Chat');
+      } else {
+        try {
+          const products = await fetchAgentProducts();
+          const agent = products.find(product => product.product_id === agentId);
+          if (agent) {
+            setAgentName(agent.name);
+          } else {
+            setAgentName(agentId); // Fallback to agentId if name not found
+          }
+        } catch (error) {
+          console.error('Error fetching agent name:', error);
+          setAgentName(agentId); // Fallback to agentId in case of error
+        }
+      }
+    }
+
+    fetchAgentName();
+  }, [agentId]);
+
   return (
     <div className="flex flex-col h-full p-4">
       <h1 className="text-2xl font-bold mb-4">
-        {isGeneralChat ? "General Chat" : `Chat with ${agentId} Agent`}
+        {isGeneralChat ? "General Chat" : `${agentName}`}
       </h1>
       <Card className="flex-1 overflow-hidden mb-4">
         <CardContent className="h-full overflow-y-auto p-4">
@@ -213,6 +264,14 @@ export default function ChatPage() {
                             <Button
                               variant="ghost"
                               size="sm"
+                              onClick={() => handleExplain(i)}
+                              className="text-gray-500"
+                            >
+                              Explain
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               onClick={() => handleFeedback(i, 'up')}
                               className={feedback[i] === 'up' ? 'text-green-500' : 'text-gray-500'}
                             >
@@ -239,15 +298,15 @@ export default function ChatPage() {
         </CardContent>
       </Card>
       <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4">
-        <form onSubmit={onSubmit} className="flex flex-col space-y-2">
+        <form ref={formRef} onSubmit={onSubmit} className="flex flex-col space-y-2">
           {isGeneralChat && (
             <div className="flex flex-wrap gap-2 mb-2">
               {selectedApis.map(api => (
-                <span key={api} className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded flex items-center">
-                  {api}
+                <span key={api.id} className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded flex items-center">
+                  {api.name}
                   <button
                     type="button"
-                    onClick={() => handleRemoveApi(api)}
+                    onClick={() => handleRemoveApi(api.id)}
                     className="ml-1 text-blue-800 hover:text-blue-900 focus:outline-none"
                     aria-label={`Remove ${api}`}
                   >
@@ -266,7 +325,7 @@ export default function ChatPage() {
               placeholder={isGeneralChat ? "Type your message... Use @ to select APIs" : "Type your message..."}
               className="flex-grow"
             />
-            <Button type="submit" disabled={isLoading}>Send</Button>
+            <Button ref={submitButtonRef} type="submit" disabled={isLoading}>Send</Button>
           </div>
         </form>
       </div>

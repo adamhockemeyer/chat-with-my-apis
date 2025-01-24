@@ -35,7 +35,7 @@ var policy1 = '''
         <base />
       <choose>
           <!-- If we are calling the Assistants API, we can't load balance since all of the Assistant objects are scoped to a single instance of OpenAI-->
-          <when condition="@(context.Request.Url.Path.Contains("assistants"))">
+          <when condition="@(context.Request.Url.Path.Contains("assistants") || context.Request.Url.Path.Contains("threads"))">
               <set-backend-service backend-id="{{non-load-balanced-openai-backend-name}}" />
           </when>
           <otherwise>

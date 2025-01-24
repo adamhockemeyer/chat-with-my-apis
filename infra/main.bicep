@@ -192,7 +192,8 @@ module apimApisMaps 'api-management/apis/maps-api.bicep' = {
   }
 }
 
-module apimProduct 'api-management/apim-product.bicep' = {
+// Generic Chat Agent Product
+module apimProduct_generic_chat_agent 'api-management/apim-product.bicep' = {
   name: '${prefix}-apim-product-generic-chat-agent'
   params: {
     apiManagementServiceName: apim.outputs.name
@@ -203,6 +204,43 @@ module apimProduct 'api-management/apim-product.bicep' = {
     productApis: [
       apimApisMaps.outputs.id
     ]
+  }
+}
+
+// Generic Chat Agent Instructions
+module apimNameValue_generic_chat_agent_instructions 'api-management/apim-namevalue.bicep' = {
+  name: '${prefix}-apim-namedvalue-generic-chat-agent-instructions'
+  params: {
+    apiManagementServiceName: apim.outputs.name
+    name: '${apimProduct_generic_chat_agent.outputs.productName}-instructions'
+    displayName: '${apimProduct_generic_chat_agent.outputs.productName}-instructions'
+    value: loadTextContent('api-management/named-values/generic-chat-agent-instructions.md')
+  }
+}
+
+// Generic Chat Agent Product
+module apimProduct_field_support_agent 'api-management/apim-product.bicep' = {
+  name: '${prefix}-apim-product-field-support-agent'
+  params: {
+    apiManagementServiceName: apim.outputs.name
+    productName: 'field-support-agent'
+    productDisplayName: 'Field Support Agent'
+    productDescription: 'This product has all available APIs enabled for the Field Support Agent'
+    productTerms: 'API Chat Product Terms'
+    // productApis: [
+    //   apimApisMaps.outputs.id
+    // ]
+  }
+}
+
+// Generic Chat Agent Instructions
+module apimNameValue_field_support_agent_instructions 'api-management/apim-namevalue.bicep' = {
+  name: '${prefix}-apim-namedvalue-field-support-agent-instructions'
+  params: {
+    apiManagementServiceName: apim.outputs.name
+    name: '${apimProduct_field_support_agent.outputs.productName}-instructions'
+    displayName: '${apimProduct_field_support_agent.outputs.productName}-instructions'
+    value: loadTextContent('api-management/named-values/field-support-agent-instructions.md')
   }
 }
 
@@ -275,47 +313,31 @@ module apiContainerApp 'container-apps/container-app-upsert.bicep' = {
       }
       {
         name: 'AZURE_OPENAI_ENDPOINT'
-        value: '${apim.outputs.gatewayUrl}/'
+        value: apim.outputs.gatewayUrl
       }
       {
         name: 'AZURE_OPENAI_CHAT_DEPLOYMENT_NAME'
         value: openAIDeployments1.outputs.chatDeploymentName
       }
       {
-        name: 'AZURE_OPENAI_EMBEDDING_DEPLOYMENT_NAME'
-        value: openAIDeployments1.outputs.embeddingDeploymentName
-      }
-      {
         name: 'AZURE_OPENAI_API_VERSION'
-        value: '2024-08-01-preview'
+        value: '2024-10-01-preview'
       }
       {
-        name: 'AZURE_SUBSCRIPTION_ID'
-        value: subscription().subscriptionId
-      }
-      {
-        name: 'AZURE_RESOURCE_GROUP'
-        value: resourceGroup().name
-      }
-      {
-        name: 'AZURE_APIM_SERVICE_NAME'
-        value: apim.outputs.name
+        name: 'AZURE_APIM_ENDPOINT'
+        value: apim.outputs.gatewayUrl
       }
       {
         name: 'AZURE_APIM_SERVICE_API_VERSION'
         value: '2022-08-01'
       }
       {
-        name: 'AZURE_APIM_SERVICE_PRODUCT_ID'
-        value: apimProduct.name
-      }
-      {
         name: 'AZURE_APIM_SERVICE_SUBSCRIPTION_KEY'
         value: apimSubscription.listSecrets().primaryKey
       }
       {
-        name: 'AZURE_MAPS_CLIENT_ID'
-        value: maps.outputs.clientId
+        name: 'AZURE_APIM_APICHAT_SUBSCRIPTION_KEY'
+        value: apimSubscription.listSecrets().primaryKey
       }
     ]
     targetPort: 80
@@ -343,6 +365,10 @@ module webContainerApp 'container-apps/container-app-upsert.bicep' = {
       {
         name: 'SK_API_ENDPOINT'
         value: apiContainerApp.outputs.uri
+      }
+      {
+        name: 'GENERIC_CHAT_APIM_PRODUCT_ID'
+        value: apimProduct_generic_chat_agent.outputs.productName
       }
     ]
     targetPort: 3000
