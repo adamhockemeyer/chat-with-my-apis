@@ -13,7 +13,7 @@ import { useParams } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
 import { TypingAnimation } from '../../components/TypingAnimation'
 import { chat } from '../../actions/sk_chat'
-import { fetchApisByProductId } from '../../actions/apis'
+import { fetchApisByProductId, fetchAgentProducts } from '../../actions/apis'
 
 const GENERIC_CHAT_APIM_PRODUCT_ID = process.env.GENERIC_CHAT_APIM_PRODUCT_ID ?? 'generic-chat-agent';
 
@@ -26,6 +26,8 @@ export default function ChatPage() {
   const [apiSearch, setApiSearch] = useState('')
   const [apiListPosition, setApiListPosition] = useState({ top: 0, left: 0, bottom: 0 })
   const inputRef = useRef<HTMLInputElement>(null)
+  const formRef = useRef<HTMLFormElement>(null);
+  const submitButtonRef = useRef<HTMLButtonElement>(null);
   const [apis, setApis] = useState<Array<{ id: string; name: string }>>([])
   const [feedback, setFeedback] = useState<{ [key: string]: Feedback }>({})
 
@@ -37,6 +39,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Array<{ role: string; content: string }>>([])
   const [chatResponses, setChatResponses] = useState<string>("") // Declare the setChatResponses function
   const isGeneralChat = agentId === 'general';
+  const [agentName, setAgentName] = useState<string>('');
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -62,7 +65,7 @@ export default function ChatPage() {
 
       // Use readStreamableValue to get chunks from the SSE stream
       for await (const chunk of readStreamableValue(output)) {
-        console.log('chunk:', chunk)
+        //console.log('chunk:', chunk)
         fullResponse += chunk
         setMessages((prev) =>
           prev.map((item, idx) =>
@@ -147,6 +150,16 @@ export default function ChatPage() {
     console.log(`Feedback for message ${messageId}: ${feedbackType}`)
   }
 
+  const handleExplain = (messageId: number) => {
+    setInput('Can you explain the steps you took to get this answer.');
+
+    // Then wait briefly to ensure React state updates
+    setTimeout(() => {
+      console.log(formRef.current);
+      formRef.current?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    }, 100);
+  };
+
   useEffect(() => {
     if (input.endsWith('@') && isGeneralChat) {
       const rect = inputRef.current?.getBoundingClientRect()
@@ -186,10 +199,33 @@ export default function ChatPage() {
     fetchApis()
   }, [])
 
+  useEffect(() => {
+    async function fetchAgentName() {
+      if (agentId === 'general') {
+        setAgentName('General Chat');
+      } else {
+        try {
+          const products = await fetchAgentProducts();
+          const agent = products.find(product => product.product_id === agentId);
+          if (agent) {
+            setAgentName(agent.name);
+          } else {
+            setAgentName(agentId); // Fallback to agentId if name not found
+          }
+        } catch (error) {
+          console.error('Error fetching agent name:', error);
+          setAgentName(agentId); // Fallback to agentId in case of error
+        }
+      }
+    }
+
+    fetchAgentName();
+  }, [agentId]);
+
   return (
     <div className="flex flex-col h-full p-4">
       <h1 className="text-2xl font-bold mb-4">
-        {isGeneralChat ? "General Chat" : `Chat with ${agentId} Agent`}
+        {isGeneralChat ? "General Chat" : `${agentName}`}
       </h1>
       <Card className="flex-1 overflow-hidden mb-4">
         <CardContent className="h-full overflow-y-auto p-4">
@@ -228,6 +264,14 @@ export default function ChatPage() {
                             <Button
                               variant="ghost"
                               size="sm"
+                              onClick={() => handleExplain(i)}
+                              className="text-gray-500"
+                            >
+                              Explain
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               onClick={() => handleFeedback(i, 'up')}
                               className={feedback[i] === 'up' ? 'text-green-500' : 'text-gray-500'}
                             >
@@ -254,7 +298,7 @@ export default function ChatPage() {
         </CardContent>
       </Card>
       <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4">
-        <form onSubmit={onSubmit} className="flex flex-col space-y-2">
+        <form ref={formRef} onSubmit={onSubmit} className="flex flex-col space-y-2">
           {isGeneralChat && (
             <div className="flex flex-wrap gap-2 mb-2">
               {selectedApis.map(api => (
@@ -281,7 +325,7 @@ export default function ChatPage() {
               placeholder={isGeneralChat ? "Type your message... Use @ to select APIs" : "Type your message..."}
               className="flex-grow"
             />
-            <Button type="submit" disabled={isLoading}>Send</Button>
+            <Button ref={submitButtonRef} type="submit" disabled={isLoading}>Send</Button>
           </div>
         </form>
       </div>

@@ -192,6 +192,7 @@ module apimApisMaps 'api-management/apis/maps-api.bicep' = {
   }
 }
 
+// Generic Chat Agent Product
 module apimProduct_generic_chat_agent 'api-management/apim-product.bicep' = {
   name: '${prefix}-apim-product-generic-chat-agent'
   params: {
@@ -206,6 +207,7 @@ module apimProduct_generic_chat_agent 'api-management/apim-product.bicep' = {
   }
 }
 
+// Generic Chat Agent Instructions
 module apimNameValue_generic_chat_agent_instructions 'api-management/apim-namevalue.bicep' = {
   name: '${prefix}-apim-namedvalue-generic-chat-agent-instructions'
   params: {
@@ -213,6 +215,32 @@ module apimNameValue_generic_chat_agent_instructions 'api-management/apim-nameva
     name: '${apimProduct_generic_chat_agent.outputs.productName}-instructions'
     displayName: '${apimProduct_generic_chat_agent.outputs.productName}-instructions'
     value: loadTextContent('api-management/named-values/generic-chat-agent-instructions.md')
+  }
+}
+
+// Generic Chat Agent Product
+module apimProduct_field_support_agent 'api-management/apim-product.bicep' = {
+  name: '${prefix}-apim-product-field-support-agent'
+  params: {
+    apiManagementServiceName: apim.outputs.name
+    productName: 'field-support-agent'
+    productDisplayName: 'Field Support Agent'
+    productDescription: 'This product has all available APIs enabled for the Field Support Agent'
+    productTerms: 'API Chat Product Terms'
+    // productApis: [
+    //   apimApisMaps.outputs.id
+    // ]
+  }
+}
+
+// Generic Chat Agent Instructions
+module apimNameValue_field_support_agent_instructions 'api-management/apim-namevalue.bicep' = {
+  name: '${prefix}-apim-namedvalue-field-support-agent-instructions'
+  params: {
+    apiManagementServiceName: apim.outputs.name
+    name: '${apimProduct_field_support_agent.outputs.productName}-instructions'
+    displayName: '${apimProduct_field_support_agent.outputs.productName}-instructions'
+    value: loadTextContent('api-management/named-values/field-support-agent-instructions.md')
   }
 }
 

@@ -35,6 +35,7 @@ export async function fetchApisByProductId(productId: string): Promise<ApiRespon
 export async function fetchAgentProducts(): Promise<ProductResponse[]> {
     try {
         const baseUrl = process.env.SK_API_ENDPOINT ?? 'http://127.0.0.1:8000';
+        const genericChatProductId = process.env.GENERIC_CHAT_APIM_PRODUCT_ID;
 
         const response = await fetch(`${baseUrl}/v1/agent-products`, {
             method: 'GET',
@@ -45,7 +46,8 @@ export async function fetchAgentProducts(): Promise<ProductResponse[]> {
         if (!response.ok) {
             throw new Error(`Error fetching agent products: ${response.statusText}`);
         }
-        return await response.json();
+        const products: ProductResponse[] = await response.json();
+        return products.filter(product => product.product_id !== genericChatProductId);
     } catch (error) {
         console.error(`Error fetching agent products:`, error);
         throw error;

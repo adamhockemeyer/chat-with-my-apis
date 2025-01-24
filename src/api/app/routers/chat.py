@@ -101,14 +101,20 @@ async def build_chat_results(chat_input: ChatInput):
         if not apim_agent:
             yield f"Agent with ID {chat_input.agent_id} not found"
 
-        if chat_input.product_id:
+        # If api_ids are provided and product_id is provided, we will use the agent instructions 
+        # for the product_id, however, we will only load the specified api_ids, and not all apis in the product.
+        # This is mainly to support the general chat functionality, to allow users to experiment chatting with and without 
+        # certain APIs.
+
+        if chat_input.product_id and (chat_input.api_ids is None or len(chat_input.api_ids) == 0):
             await add_apim_apis_by_product(kernel, chat_input.product_id)
         
-        if chat_input.api_ids:
+        if chat_input.api_ids and len(chat_input.api_ids) > 0:
+            logger.info("   ⚠️ api_ids provided - ignoring api_ids from product_id.")
             for api_id in chat_input.api_ids:
                 await add_apim_api(kernel, api_id)
 
-        if not chat_input.product_id and not chat_input.api_ids:
+        if not chat_input.product_id and (chat_input.api_ids is None or len(chat_input.api_ids) == 0):
             logger.info("   ⚠️ No product_id or api_ids provided. Using default Semantic Kernel functionality.")
 
         try:

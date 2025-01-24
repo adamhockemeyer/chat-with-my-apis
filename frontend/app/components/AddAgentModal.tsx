@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Textarea } from "@/components/ui/textarea"
+import { fetchAgentProducts, ProductResponse } from "../actions/apis"
 
 type Agent = {
   id: string
@@ -61,12 +62,18 @@ export function AddAgentModal({ isOpen, onClose, onAddAgent, availableAPIs }: Ad
   useEffect(() => {
     async function fetchAgents() {
       try {
-        const response = await fetch('/api/agents')
-        if (!response.ok) {
+        //const response = await fetch('/api/agents')
+        const response = await fetchAgentProducts()
+        if (!response) {
           throw new Error('Failed to fetch agents')
         }
-        const data = await response.json()
-        setAvailableAgents(data)
+
+        setAvailableAgents(response.map((product: ProductResponse) => ({
+          id: product.product_id,
+          name: product.name,
+          description: 'Agent description',
+          apis: []
+        })))
       } catch (error) {
         console.error('Error fetching agents:', error)
       }
@@ -182,7 +189,7 @@ export function AddAgentModal({ isOpen, onClose, onAddAgent, availableAPIs }: Ad
                   <Checkbox
                     id="fileUpload"
                     checked={capabilities.fileUpload}
-                    onCheckedChange={(checked) => 
+                    onCheckedChange={(checked) =>
                       setCapabilities(prev => ({ ...prev, fileUpload: checked as boolean }))
                     }
                   />
@@ -192,7 +199,7 @@ export function AddAgentModal({ isOpen, onClose, onAddAgent, availableAPIs }: Ad
                   <Checkbox
                     id="codeInterpreter"
                     checked={capabilities.codeInterpreter}
-                    onCheckedChange={(checked) => 
+                    onCheckedChange={(checked) =>
                       setCapabilities(prev => ({ ...prev, codeInterpreter: checked as boolean }))
                     }
                   />
