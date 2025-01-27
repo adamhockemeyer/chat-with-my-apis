@@ -4,7 +4,11 @@ services:
     project: ./src/api
     language: py
     host: containerapp
+    docker:
+      remoteBuild: false
   web:
     project: ./frontend
     language: ts
     host: containerapp
+    docker:
+      remoteBuild: false
