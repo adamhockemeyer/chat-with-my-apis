@@ -12,3 +12,17 @@ services:
     host: containerapp
     docker:
       remoteBuild: false
+  adventureworks-api:
+    project: ./src/adventureworks-api
+    language: python
+    host: containerapp
+    docker:
+      path: Dockerfile
+      context: ./
+  adventureworks-web:
+    project: ./src/adventureworks-web
+    language: csharp
+    host: containerapp
+    docker:
+      path: Dockerfile
+      context: ./

@@ -32,3 +32,9 @@ Ocp-Apim-Subscription-Key: {{apimSubscriptionKey}}
 
 GET {{baseUrl}}/docs/docs/azure-maps-weather-service/openapi HTTP/1.1
 Ocp-Apim-Subscription-Key: {{apimSubscriptionKey}}
+
+### Sample Request for fetching a Product by id
+
+GET {{baseUrl}}/products/product/ProductID/680 HTTP/1.1
+Ocp-Apim-Subscription-Key: {{apimSubscriptionKey}}
+

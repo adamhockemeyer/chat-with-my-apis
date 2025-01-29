@@ -31,6 +31,10 @@ async def add_openapi_plugin(kernel: Kernel, plugin_name:str, openapi_spec: str)
     parser = ResolvingParser(spec_string=openapi_spec, resolve_types = resolver.RESOLVE_FILES, strict=False, recursion_limit=10)
     parsed_spec = parser.specification
 
+    # Log the first server URL (if present)
+    if "servers" in parsed_spec and parsed_spec["servers"]:
+        logger.info(f"      ☁️ OpenAPI Server Url: {parsed_spec['servers'][0]['url']}")
+
     async def my_auth_callback(**kwargs):
         return {"Ocp-Apim-Subscription-Key": get_settings().azure_apim_service_subscription_key, "Content-Type": "application/json"}
 

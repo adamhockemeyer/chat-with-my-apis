@@ -13,6 +13,7 @@ param apimPublisherEmail string = 'user@company.com'
 param apiAppExists bool = false
 param webAppExists bool = false
 param azureMapsLocation string
+param deploySQLServer bool = true
 
 var sharedRoleDefinitions = loadJsonContent('./role-definitions.json')
 
@@ -372,6 +373,75 @@ module webContainerApp 'container-apps/container-app-upsert.bicep' = {
       }
     ]
     targetPort: 3000
+  }
+}
+
+module sqlServer 'sql/sql-server.bicep' = if (deploySQLServer) {
+  name: '${prefix}-sql-server'
+  params: {
+    name: '${prefix}-sql'
+    //location: region
+    location: 'eastus2'
+    tags: commonTags
+    managedIdentityName: userAssignedManagedIdentity.name
+    managedIdnetityClientId: userAssignedManagedIdentity.properties.principalId
+  }
+}
+
+module adventureWorksDABAPIContainerApp 'container-apps/container-app-upsert.bicep' = if (deploySQLServer) {
+  name: '${prefix}-aw-api-app'
+  params: {
+    name: 'adventureworks-api'
+    location: region
+    tags: union(commonTags, { 'azd-service-name': 'adventureworks-api' })
+    identityType: 'UserAssigned'
+    identityName: userAssignedManagedIdentity.name
+    exists: webAppExists
+    containerAppsEnvironmentName: containerAppsEnvironment.outputs.containerAppsEnvironmentName
+    containerRegistryName: containerRegistry.outputs.name
+    containerCpuCoreCount: '1.0'
+    containerMemory: '2.0Gi'
+    secrets: {
+      'azure-sql-connection-string': 'Server=tcp:${sqlServer.outputs.fullyQualifiedDomainName},1433;Initial Catalog=AdventureWorksLT;Authentication=Active Directory Default;'
+      'user-assigned-managed-identity-client-id': userAssignedManagedIdentity.properties.clientId
+    }
+    env: [
+      {
+        name: 'AZURE_SQL_CONNECTION_STRING'
+        secretRef: 'azure-sql-connection-string'
+      }
+      {
+        name: 'AZURE_CLIENT_ID'
+        secretRef: 'user-assigned-managed-identity-client-id'
+      }
+    ]
+    targetPort: 5000
+  }
+}
+
+module adventureWorksDABWebContainerApp 'container-apps/container-app-upsert.bicep' = if (deploySQLServer) {
+  name: '${prefix}-aw-web-app'
+  params: {
+    name: 'adventureworks-web'
+    location: region
+    tags: union(commonTags, { 'azd-service-name': 'adventureworks-web' })
+    identityType: 'UserAssigned'
+    identityName: userAssignedManagedIdentity.name
+    exists: webAppExists
+    containerAppsEnvironmentName: containerAppsEnvironment.outputs.containerAppsEnvironmentName
+    containerRegistryName: containerRegistry.outputs.name
+    containerCpuCoreCount: '1.0'
+    containerMemory: '2.0Gi'
+    secrets: {
+      'data-api-builder-endpoint': '${adventureWorksDABAPIContainerApp.outputs.uri}/graphql'
+    }
+    env: [
+      {
+        name: 'CONFIGURATION__DATAAPIBUILDER__BASEAPIURL'
+        secretRef: 'data-api-builder-endpoint'
+      }
+    ]
+    targetPort: 8080
   }
 }
 
