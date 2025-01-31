@@ -6,7 +6,7 @@ import { readStreamableValue } from 'ai/rsc';
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent } from "@/components/ui/card"
-import { X, ThumbsUp, ThumbsDown } from 'lucide-react'
+import { X, ThumbsUp, ThumbsDown, Bug } from 'lucide-react'
 import { ApiList } from '../../components/ApiList'
 import { WelcomeMessage } from '../../components/WelcomeMessage'
 import { useParams } from 'next/navigation'
@@ -36,7 +36,7 @@ export default function ChatPage() {
   const [chatThreadId, setChatThreadId] = useState('')
   const [chatAgentId, setChatAgentId] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [messages, setMessages] = useState<Array<{ role: string; content: string }>>([])
+  const [messages, setMessages] = useState<Array<{ role: string; content: string, traceId?: string | null}>>([])
   const [chatResponses, setChatResponses] = useState<string>("") // Declare the setChatResponses function
   const isGeneralChat = agentId === 'general';
   const [agentName, setAgentName] = useState<string>('');
@@ -54,10 +54,12 @@ export default function ChatPage() {
 
 
       const productId = isGeneralChat ? GENERIC_CHAT_APIM_PRODUCT_ID : agentId;
-      const { output, agentId: llmAgentId, threadId: llmThreadId } = await chat(input, chatThreadId, chatAgentId, productId, selectedApis.map((api) => api.id))
+      const { output, agentId: llmAgentId, threadId: llmThreadId, traceId } = await chat(input, chatThreadId, chatAgentId, productId, selectedApis.map((api) => api.id))
 
       setChatThreadId(llmThreadId)
       setChatAgentId(llmAgentId)
+
+      console.log('traceId:', traceId);
 
 
       let fullResponse = ''
@@ -69,7 +71,7 @@ export default function ChatPage() {
         fullResponse += chunk
         setMessages((prev) =>
           prev.map((item, idx) =>
-            idx === newEntryIndex ? { ...item, role: 'assistant', content: fullResponse } : item
+            idx === newEntryIndex ? { ...item, role: 'assistant', content: fullResponse, traceId: traceId } : item
           )
         )
       }
@@ -159,6 +161,15 @@ export default function ChatPage() {
       formRef.current?.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     }, 100);
   };
+
+  function handleDebug(index: number) {
+    const traceId = messages[index]?.traceId;
+    if (traceId) {
+      alert(`Open Telemetry TraceID: ${traceId}`);
+    } else {
+      alert('No TraceID found for this message');
+    }
+  }
 
   useEffect(() => {
     if (input.endsWith('@') && isGeneralChat) {
@@ -269,6 +280,14 @@ export default function ChatPage() {
                             >
                               Explain
                             </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDebug(i)}
+                                className="text-gray-500"
+                              >
+                                <Bug size={16} />
+                              </Button>
                             <Button
                               variant="ghost"
                               size="sm"

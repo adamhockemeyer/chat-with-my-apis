@@ -86,6 +86,7 @@ Requirements
     1. [128 tools/functions](https://learn.microsoft.com/en-us/azure/ai-services/openai/assistants-reference?tabs=python)
         1. To help reduce token consumption, try adding only the APIs your solution needs to answer questions. Refer to the appendix below on tips and tricks for adding OpenAPI plugins.
     1. Function description can be a max of 1,024 characters
+    1. **Function Names (aka APIM OperationId) will need to be snake case** (no hyphens) (i.e. `get_products_by_id`). If you need to edit this, you can export the OpenAPI Spec from APIM, edit it in a local file editor, and upload it back into the APIM API.
 
 ## Sample Architecture
 
@@ -101,3 +102,8 @@ Requirements
 ## Examples
 1. Named Value Agent Instructions in APIM
     ![Example Agent Instructions](images/named-value-agent-instructions.png)
+1. Logic Apps are a quick way to build APIs and connectivity into many systems. Below is a sample az rest call which will export the Http Trigger APIs in a Logic App as an OpenAPI Spec
+
+     ```shell
+    az rest -m POST -u https://management.azure.com/subscriptions/[subscriptionId]/resourceGroups/[resourceGroupName]/providers/Microsoft.Web/sites/[logicAppName]/hostruntime/runtime/webhooks/workflow/api/management/listSwagger?api-version=2018-11-01
+    ```

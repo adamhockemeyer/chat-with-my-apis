@@ -76,8 +76,24 @@ async def post_create_thread(agent_input: ChatCreateThreadInput):
 
 @tracer.start_as_current_span(name="chat")
 @router.post("/chat")
-async def post_chat(chat_input: ChatInput):
-    return StreamingResponse(build_chat_results(chat_input))
+async def chat_endpoint(chat_input: ChatInput):
+    # Build the generator or async content
+    content = build_chat_results(chat_input)
+
+    # Extract or compute your trace_id_hex here (or pass it from build_chat_results)
+    # For example, if you do it in build_chat_results, store it in a variable or return it:
+    current_span = trace.get_current_span()
+    trace_id = current_span.get_span_context().trace_id
+    trace_id_hex = format(trace_id, '032x')
+
+    logger.info(f"      OTel Trace ID: {trace_id_hex}")
+
+    return StreamingResponse(
+        content,
+        status_code=200,
+        headers={"x-trace-id": trace_id_hex},
+        media_type="text/event-stream"
+    )
 
 async def build_chat_results(chat_input: ChatInput):
     with tracer.start_as_current_span(name="build_chat_results"):
