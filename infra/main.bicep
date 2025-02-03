@@ -340,6 +340,18 @@ module apiContainerApp 'container-apps/container-app-upsert.bicep' = {
         name: 'AZURE_APIM_APICHAT_SUBSCRIPTION_KEY'
         value: apimSubscription.listSecrets().primaryKey
       }
+      {
+        name: 'SEMANTICKERNEL_EXPERIMENTAL_GENAI_ENABLE_OTEL_DIAGNOSTICS'
+        value: 'true'
+      }
+      {
+        name: 'SEMANTICKERNEL_EXPERIMENTAL_GENAI_ENABLE_OTEL_DIAGNOSTICS_SENSITIVE'
+        value: 'true'
+      }
+      {
+        name: 'OTEL_SERVICE_NAME'
+        value: 'apichat-api'
+      }
     ]
     targetPort: 80
   }

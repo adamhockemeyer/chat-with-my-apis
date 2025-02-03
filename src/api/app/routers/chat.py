@@ -16,7 +16,7 @@ from app.config import get_settings
 from app.services.plugins import add_apim_apis_by_product, add_apim_api
 from app.services.apim import fetch_named_value
 
-logger = logging.getLogger("uvicorn.error")
+logger = logging.getLogger(__name__)
 tracer = trace.get_tracer(__name__)
 
 router = APIRouter()

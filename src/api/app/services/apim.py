@@ -4,7 +4,7 @@ from opentelemetry import trace
 from azure.identity import DefaultAzureCredential
 from app.config import get_settings
 
-logger = logging.getLogger("uvicorn.error")
+logger = logging.getLogger(__name__)
 tracer = trace.get_tracer(__name__)
 
 #azure_mgmt_apim_base_url = f"https://management.azure.com/subscriptions/{get_settings().azure_subscription_id}/resourceGroups/{get_settings().azure_resource_group}/providers/Microsoft.ApiManagement/service/{get_settings().azure_apim_service_name}"

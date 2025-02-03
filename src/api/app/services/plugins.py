@@ -10,7 +10,7 @@ from app.config import get_settings
 
 from app.services.apim import get_access_token, fetch_apis_by_product, fetch_openapi_spec
 
-logger = logging.getLogger("uvicorn.error")
+logger = logging.getLogger(__name__)
 tracer = trace.get_tracer(__name__)
 
 @tracer.start_as_current_span(name="sanitize_plugin_name")
