@@ -24,7 +24,7 @@ from opentelemetry.trace import set_tracer_provider
 # Replace the connection string with your Application Insights connection string
 #connection_string = "your-application-insights-connection-string"
 
-configure_azure_monitor()
+#configure_azure_monitor()
 
 # Create a resource to represent the service/sample
 resource = Resource.create({ResourceAttributes.SERVICE_NAME: "apichat-api"})

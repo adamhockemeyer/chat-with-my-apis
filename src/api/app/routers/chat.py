@@ -16,8 +16,14 @@ from app.config import get_settings
 from app.services.plugins import add_apim_apis_by_product, add_apim_api
 from app.services.apim import fetch_named_value
 
+from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
+
+logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 tracer = trace.get_tracer(__name__)
+
+prop = TraceContextTextMapPropagator()
+carrier = {}
 
 router = APIRouter()
 
@@ -31,7 +37,7 @@ async def post_create_agent(apim_product_id: str = Query(
 
     if apim_product_id:
         try:
-            named_value = fetch_named_value(f"{apim_product_id}-instructions")
+            named_value = await fetch_named_value(f"{apim_product_id}-instructions")
             if named_value:
                 instructions = named_value
                 apim_agent = await create_apim_agent(kernel, agent_name=apim_product_id, instructions=instructions)
@@ -74,30 +80,39 @@ async def post_create_thread(agent_input: ChatCreateThreadInput):
     
     return {"thread_id": thread_id}
 
-@tracer.start_as_current_span(name="chat")
+#@tracer.start_as_current_span(name="chat")
 @router.post("/chat")
 async def chat_endpoint(chat_input: ChatInput):
-    # Build the generator or async content
-    content = build_chat_results(chat_input)
+    with tracer.start_as_current_span(name="chat") as span:
+        prop.inject(carrier=carrier)
+        
+        # Build the generator or async content
+        content = build_chat_results(chat_input)
 
-    # Extract or compute your trace_id_hex here (or pass it from build_chat_results)
-    # For example, if you do it in build_chat_results, store it in a variable or return it:
-    current_span = trace.get_current_span()
-    trace_id = current_span.get_span_context().trace_id
-    trace_id_hex = format(trace_id, '032x')
+        # Extract or compute your trace_id_hex here (or pass it from build_chat_results)
+        # For example, if you do it in build_chat_results, store it in a variable or return it:
+        current_span = trace.get_current_span()
+        trace_id = current_span.get_span_context().trace_id
+        trace_id_hex = format(trace_id, '032x')
 
-    logger.info(f"      OTel Trace ID: {trace_id_hex}")
+        logger.info(f"      OTel Trace ID: {trace_id_hex}")
 
-    return StreamingResponse(
-        content,
-        status_code=200,
-        headers={"x-trace-id": trace_id_hex},
-        media_type="text/event-stream"
-    )
+        return StreamingResponse(
+            content,
+            status_code=200,
+            headers={"x-trace-id": trace_id_hex},
+            media_type="text/event-stream"
+        )
 
 async def build_chat_results(chat_input: ChatInput):
-    with tracer.start_as_current_span(name="build_chat_results"):
+    ctx = prop.extract(carrier=carrier)
+    with tracer.start_as_current_span(name="build_chat_results", context=ctx) as span:
         kernel = Kernel()
+
+        # current_span = trace.get_current_span()
+        # trace_id = current_span.get_span_context().trace_id
+        # trace_id_hex = format(trace_id, '032x')
+        # logger.info(f"Trace ID in build_chat_results: {trace_id_hex}")
 
         try:
             apim_agent = await AzureAssistantAgent.retrieve(
