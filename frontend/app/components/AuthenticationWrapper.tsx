@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation'
 import { useMsal, useIsAuthenticated } from "@azure/msal-react"
 import Header from './Header'
 import LeftNav from './LeftNav'
+import { AgentsProvider } from '../context/AgentsContext'
 
 interface AuthenticationWrapperProps {
   children: React.ReactNode
@@ -38,12 +39,14 @@ export function AuthenticationWrapper({ children }: AuthenticationWrapperProps) 
   return (
     <div className="flex flex-col h-screen">
       <Header />
-      <div className="flex flex-1 overflow-hidden">
-        <LeftNav />
-        <main className="flex-1 overflow-auto">
-          {children}
-        </main>
-      </div>
+      <AgentsProvider>
+        <div className="flex flex-1 overflow-hidden">
+          <LeftNav />
+          <main className="flex-1 overflow-auto">
+            {children}
+          </main>
+        </div>
+      </AgentsProvider>
     </div>
   )
 }

@@ -1,3 +1,5 @@
+"use client"
+
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -5,7 +7,8 @@ import { MessageSquare, Bot, PlusCircle, FileText, ChevronDown, ChevronRight } f
 import { Button } from "@/components/ui/button"
 import { AddAgentModal } from './AddAgentModal'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
-import { fetchAgentProducts, fetchApisByProductId, ProductResponse } from "../actions/apis"
+//import { fetchAgentProducts, fetchApisByProductId, ProductResponse } from "../actions/apis"
+import { useAgents } from '../context/AgentsContext'
 
 
 type API = {
@@ -24,7 +27,8 @@ type Agent = {
 const GENERIC_CHAT_APIM_PRODUCT_ID = process.env.GENERIC_CHAT_APIM_PRODUCT_ID ?? 'generic-chat-agent';
 
 export default function LeftNav() {
-  const [agents, setAgents] = useState<Agent[]>([])
+  //const [agents, setAgents] = useState<Agent[]>([])
+  const { agents, setAgents } = useAgents()
   const [isAddAgentModalOpen, setIsAddAgentModalOpen] = useState(false)
   const [agentToRemove, setAgentToRemove] = useState<string | null>(null)
   const [availableAPIs, setAvailableAPIs] = useState<API[]>([])
@@ -32,58 +36,62 @@ export default function LeftNav() {
   const [expandedAgents, setExpandedAgents] = useState<string[]>([])
 
   useEffect(() => {
-    async function fetchAPIs() {
-      try {
-        //const response = await fetch('/api/apis')
-        const response = await fetchApisByProductId(GENERIC_CHAT_APIM_PRODUCT_ID)
-        if (!response) {
-          throw new Error('Failed to fetch APIs')
-        }
-        const data = response.map((api) => ({
-          id: api.api_id,
-          name: api.name,
-        }))
-        setAvailableAPIs(data)
-      } catch (error) {
-        console.error('Error fetching APIs:', error)
-      }
-    }
+    console.log('Agents have changes:', agents);
+  }, [agents])
 
-    fetchAPIs()
-  }, [])
+  // useEffect(() => {
+  //   async function fetchAPIs() {
+  //     try {
+  //       //const response = await fetch('/api/apis')
+  //       const response = await fetchApisByProductId(GENERIC_CHAT_APIM_PRODUCT_ID)
+  //       if (!response) {
+  //         throw new Error('Failed to fetch APIs')
+  //       }
+  //       const data = response.map((api) => ({
+  //         id: api.api_id,
+  //         name: api.name,
+  //       }))
+  //       setAvailableAPIs(data)
+  //     } catch (error) {
+  //       console.error('Error fetching APIs:', error)
+  //     }
+  //   }
 
-  useEffect(() => {
-    async function fetchAgents() {
-      try {
-        //const response = await fetch('/api/agents')
-        const response = await fetchAgentProducts()
-        if (!response) {
-          throw new Error('Failed to fetch agents')
-        }
-        //const data = await response.json()
-        setAgents([
-          {
-            id: 'general',
-            name: 'General Chat',
-            description: 'A general-purpose chatbot for various topics.',
-            icon: <MessageSquare size={20} />,
-            apis: []
-          },
-          ...response.map((product: ProductResponse) => ({
-            id: product.product_id,
-            name: product.name,
-            description: 'Agent description',
-            icon: <Bot size={20} />,
-            apis: []
-          }))
-        ])
-      } catch (error) {
-        console.error('Error fetching agents:', error)
-      }
-    }
+  //   fetchAPIs()
+  // }, [])
 
-    fetchAgents()
-  }, [])
+  // useEffect(() => {
+  //   async function fetchAgents() {
+  //     try {
+  //       //const response = await fetch('/api/agents')
+  //       const response = await fetchAgentProducts()
+  //       if (!response) {
+  //         throw new Error('Failed to fetch agents')
+  //       }
+  //       //const data = await response.json()
+  //       setAgents([
+  //         {
+  //           id: 'general',
+  //           name: 'General Chat',
+  //           description: 'A general-purpose chatbot for various topics.',
+  //           icon: <MessageSquare size={20} />,
+  //           apis: []
+  //         },
+  //         ...response.map((product: ProductResponse) => ({
+  //           id: product.product_id,
+  //           name: product.name,
+  //           description: 'Agent description',
+  //           icon: <Bot size={20} />,
+  //           apis: []
+  //         }))
+  //       ])
+  //     } catch (error) {
+  //       console.error('Error fetching agents:', error)
+  //     }
+  //   }
+
+  //   fetchAgents()
+  // }, [])
 
   const handleAddAgent = (newAgent: Omit<Agent, 'icon'>) => {
     const agentWithIcon: Agent = {
@@ -111,19 +119,18 @@ export default function LeftNav() {
       <ul className="space-y-2 flex-grow">
         {agents.map((agent) => (
           <li key={agent.id}>
-            <div 
-              className={`flex items-center justify-between text-gray-700 p-2 rounded-lg font-medium hover:bg-gray-200 ${
-                pathname === `/chat/${agent.id}` ? 'bg-blue-100 text-blue-800' : ''
-              }`}
+            <div
+              className={`flex items-center justify-between text-gray-700 p-2 rounded-lg font-medium hover:bg-gray-200 ${pathname === `/chat/${agent.id}` ? 'bg-blue-100 text-blue-800' : ''
+                }`}
             >
-              <Link 
+              <Link
                 href={`/chat/${agent.id}`}
                 className="flex items-center space-x-3 flex-grow"
               >
                 {agent.icon}
                 <span>{agent.name}</span>
               </Link>
-              {agent.id !== 'general' && (
+              {/* {agent.id !== 'general' && (
                 <button
                   onClick={(e) => {
                     e.preventDefault()
@@ -137,16 +144,16 @@ export default function LeftNav() {
                     <ChevronRight size={20} />
                   )}
                 </button>
-              )}
+              )} */}
             </div>
-            {agent.id !== 'general' && expandedAgents.includes(agent.id) && (
+            {/* {agent.id !== 'general' && expandedAgents.includes(agent.id) && (
               <button
                 onClick={() => setAgentToRemove(agent.id)}
                 className="text-red-500 text-xs hover:text-red-700 mt-1 ml-8"
               >
                 Remove Agent
               </button>
-            )}
+            )} */}
           </li>
         ))}
       </ul>

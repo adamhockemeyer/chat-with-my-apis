@@ -47,7 +47,8 @@ export async function fetchAgentProducts(): Promise<ProductResponse[]> {
             throw new Error(`Error fetching agent products: ${response.statusText}`);
         }
         const products: ProductResponse[] = await response.json();
-        return products.filter(product => product.product_id !== genericChatProductId);
+        //return products.filter(product => product.product_id !== genericChatProductId);
+        return products;
     } catch (error) {
         console.error(`Error fetching agent products:`, error);
         throw error;

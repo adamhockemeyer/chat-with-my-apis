@@ -11,9 +11,12 @@ import { ApiList } from '../../components/ApiList'
 import { WelcomeMessage } from '../../components/WelcomeMessage'
 import { useParams } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { TypingAnimation } from '../../components/TypingAnimation'
 import { chat } from '../../actions/sk_chat'
-import { fetchApisByProductId, fetchAgentProducts } from '../../actions/apis'
+//import { fetchApisByProductId, fetchAgentProducts } from '../../actions/apis'
+
+import { useAgents } from '../../context/AgentsContext'
 
 const GENERIC_CHAT_APIM_PRODUCT_ID = process.env.GENERIC_CHAT_APIM_PRODUCT_ID ?? 'generic-chat-agent';
 
@@ -36,10 +39,12 @@ export default function ChatPage() {
   const [chatThreadId, setChatThreadId] = useState('')
   const [chatAgentId, setChatAgentId] = useState('')
   const [isLoading, setIsLoading] = useState(false)
-  const [messages, setMessages] = useState<Array<{ role: string; content: string, traceId?: string | null}>>([])
+  const [messages, setMessages] = useState<Array<{ role: string; content: string, traceId?: string | null }>>([])
   const [chatResponses, setChatResponses] = useState<string>("") // Declare the setChatResponses function
   const isGeneralChat = agentId === 'general';
   const [agentName, setAgentName] = useState<string>('');
+
+  const { agents } = useAgents()
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -193,45 +198,37 @@ export default function ChatPage() {
     }
   }, [agentId, isGeneralChat]);
 
+  // useEffect(() => {
+  //   async function fetchApis() {
+  //     try {
+  //       const data = await fetchApisByProductId(GENERIC_CHAT_APIM_PRODUCT_ID)
+  //       if (!data) {
+  //         throw new Error(`Failed to fetch APIs for product id: ${GENERIC_CHAT_APIM_PRODUCT_ID}`)
+  //       }
+
+  //       setApis(data.map((api: any) => ({ id: api.api_id, name: api.name })))
+  //     } catch (error) {
+  //       console.error('Error fetching APIs:', error)
+  //     }
+  //   }
+
+  //   fetchApis()
+  // }, [])
+
   useEffect(() => {
-    async function fetchApis() {
-      try {
-        const data = await fetchApisByProductId(GENERIC_CHAT_APIM_PRODUCT_ID)
-        if (!data) {
-          throw new Error(`Failed to fetch APIs for product id: ${GENERIC_CHAT_APIM_PRODUCT_ID}`)
-        }
-
-        setApis(data.map((api: any) => ({ id: api.api_id, name: api.name })))
-      } catch (error) {
-        console.error('Error fetching APIs:', error)
-      }
-    }
-
-    fetchApis()
-  }, [])
-
-  useEffect(() => {
-    async function fetchAgentName() {
-      if (agentId === 'general') {
-        setAgentName('General Chat');
+    try {
+      const agent = agents.find(agent => agent.id === agentId);
+      if (agent) {
+        setAgentName(agent.name);
       } else {
-        try {
-          const products = await fetchAgentProducts();
-          const agent = products.find(product => product.product_id === agentId);
-          if (agent) {
-            setAgentName(agent.name);
-          } else {
-            setAgentName(agentId); // Fallback to agentId if name not found
-          }
-        } catch (error) {
-          console.error('Error fetching agent name:', error);
-          setAgentName(agentId); // Fallback to agentId in case of error
-        }
+        setAgentName(agentId); // Fallback to agentId if name not found
       }
+    } catch (error) {
+      console.error('Error fetching agent name:', error);
+      setAgentName(agentId); // Fallback to agentId in case of error
     }
 
-    fetchAgentName();
-  }, [agentId]);
+  }, [agentId, agents]);
 
   return (
     <div className="flex flex-col h-full p-4">
@@ -259,13 +256,16 @@ export default function ChatPage() {
                           </div>
                         )}
                         <ReactMarkdown
+                          remarkPlugins={[remarkGfm]}
                           components={{
                             p: ({ node, ...props }) => <p className="mb-2" {...props} />,
                             ul: ({ node, ...props }) => <ul className="list-disc pl-4 mb-2" {...props} />,
                             ol: ({ node, ...props }) => <ol className="list-decimal pl-4 mb-2" {...props} />,
                             li: ({ node, ...props }) => <li className="mb-1" {...props} />,
                             a: ({ node, ...props }) => <a className="text-blue-600 hover:underline" {...props} />,
-                            code: ({ node, ...props }) => <code className="block bg-gray-100 rounded p-2 my-2 whitespace-pre-wrap" {...props} />
+                            code: ({ node, ...props }) => <code className="block bg-gray-100 rounded p-2 my-2 whitespace-pre-wrap" {...props} />,
+                            details: ({ node, ...props }) => <details className="mb-2" {...props} />,
+                            summary: ({ node, ...props }) => <summary className="font-semibold cursor-pointer" {...props} />,
                           }}
                         >
                           {m.content}
@@ -280,14 +280,14 @@ export default function ChatPage() {
                             >
                               Explain
                             </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDebug(i)}
-                                className="text-gray-500"
-                              >
-                                <Bug size={16} />
-                              </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDebug(i)}
+                              className="text-gray-500"
+                            >
+                              <Bug size={16} />
+                            </Button>
                             <Button
                               variant="ghost"
                               size="sm"
