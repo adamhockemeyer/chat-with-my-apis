@@ -5,24 +5,22 @@ services:
     language: py
     host: containerapp
     docker:
-      remoteBuild: false
+      remoteBuild: true
   web:
     project: ./frontend
     language: ts
     host: containerapp
     docker:
-      remoteBuild: false
+      remoteBuild: true
   adventureworks-api:
     project: ./src/adventureworks-api
     language: python
     host: containerapp
     docker:
-      path: Dockerfile
-      context: ./
+      remoteBuild: true
   adventureworks-web:
     project: ./src/adventureworks-web
     language: csharp
     host: containerapp
     docker:
-      path: Dockerfile
-      context: ./
+      remoteBuild: true

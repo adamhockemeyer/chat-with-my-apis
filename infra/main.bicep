@@ -219,6 +219,23 @@ module apimNameValue_generic_chat_agent_instructions 'api-management/apim-nameva
   }
 }
 
+module apimApisAdventureWorks 'api-management/apis/adventureworks-api.bicep' = {
+  name: '${prefix}-apim-aw-api'
+  params: {
+    serviceName: apim.outputs.name
+  }
+}
+
+module namedValueAPIMServiceUrl 'api-management/apim-namevalue.bicep' = {
+  name: '${prefix}-apim-namedvalue-adventureworks-service-url'
+  params: {
+    apiManagementServiceName: apimService.name
+    name: 'adventureworks-api-service-url'
+    displayName: 'Adventureworks-API-Service-URL'
+    value: '${adventureWorksDABAPIContainerApp.outputs.uri}/api'
+  }
+}
+
 // Generic Chat Agent Product
 module apimProduct_field_support_agent 'api-management/apim-product.bicep' = {
   name: '${prefix}-apim-product-field-support-agent'
@@ -228,9 +245,9 @@ module apimProduct_field_support_agent 'api-management/apim-product.bicep' = {
     productDisplayName: 'Field Support Agent'
     productDescription: 'This product has all available APIs enabled for the Field Support Agent'
     productTerms: 'API Chat Product Terms'
-    // productApis: [
-    //   apimApisMaps.outputs.id
-    // ]
+    productApis: [
+      apimApisAdventureWorks.outputs.id
+    ]
   }
 }
 

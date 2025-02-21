@@ -34,54 +34,6 @@ export async function chat(input: string, threadId: string, agentId: string, pro
         threadId = threadData.thread_id;
     }
 
-    // const stream = createStreamableValue('');
-    // var traceId = null;
-
-    // (async () => {
-    //     try {
-    //         const response = await fetch(`${baseUrl}/v1/chat`, {
-    //             method: 'POST',
-    //             headers: {
-    //                 'Accept': 'text/event-stream',
-    //                 'Content-Type': 'application/json',
-    //             },
-    //             body: JSON.stringify({
-    //                 agent_id: agentId,
-    //                 thread_id: threadId,
-    //                 content: input,
-    //                 product_id: product_id,
-    //                 api_ids: api_ids,
-    //             }),
-    //         });
-
-    //         if (!response.body) {
-    //             throw new Error('Response does not have a body');
-    //         }
-
-    //         // Grab the trace ID if available
-    //         traceId = response.headers.get('x-trace-id') || null;
-    //         console.log('x-trace-id:', traceId);
-
-    //         const reader = response.body?.getReader();
-    //         const decoder = new TextDecoder();
-
-    //         while (true) {
-    //             const { done, value } = await reader.read();
-    //             if (done) break;
-
-    //             const chunk = decoder.decode(value, { stream: true });
-    //             // Handle the chunk (e.g., parse or update UI)
-    //             stream.update(chunk);
-    //         }
-
-    //         stream.done();
-    //     } catch (error) {
-    //         console.error('Error fetching or processing the stream:', error);
-    //         stream.update('An error occurred while processing your request.');
-    //         stream.done();
-    //     }
-    // })();
-
     const response = await fetch(`${baseUrl}/v1/chat`, {
         method: 'POST',
         headers: {

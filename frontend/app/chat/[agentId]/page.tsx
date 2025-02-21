@@ -12,13 +12,13 @@ import { WelcomeMessage } from '../../components/WelcomeMessage'
 import { useParams } from 'next/navigation'
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import rehypeRaw from 'rehype-raw'
 import { TypingAnimation } from '../../components/TypingAnimation'
 import { chat } from '../../actions/sk_chat'
 //import { fetchApisByProductId, fetchAgentProducts } from '../../actions/apis'
 
 import { useAgents } from '../../context/AgentsContext'
 
-const GENERIC_CHAT_APIM_PRODUCT_ID = process.env.GENERIC_CHAT_APIM_PRODUCT_ID ?? 'generic-chat-agent';
 
 type Feedback = 'up' | 'down' | null;
 
@@ -43,6 +43,7 @@ export default function ChatPage() {
   const [chatResponses, setChatResponses] = useState<string>("") // Declare the setChatResponses function
   const isGeneralChat = agentId === 'general';
   const [agentName, setAgentName] = useState<string>('');
+  const [agentNotFound, setAgentNotFound] = useState(false);
 
   const { agents } = useAgents()
 
@@ -58,7 +59,7 @@ export default function ChatPage() {
       setMessages((prev) => [...prev, { role: 'user', content: input }, { role: 'assistant', content: '' }])
 
 
-      const productId = isGeneralChat ? GENERIC_CHAT_APIM_PRODUCT_ID : agentId;
+      const productId = agentId;
       const { output, agentId: llmAgentId, threadId: llmThreadId, traceId } = await chat(input, chatThreadId, chatAgentId, productId, selectedApis.map((api) => api.id))
 
       setChatThreadId(llmThreadId)
@@ -198,37 +199,36 @@ export default function ChatPage() {
     }
   }, [agentId, isGeneralChat]);
 
-  // useEffect(() => {
-  //   async function fetchApis() {
-  //     try {
-  //       const data = await fetchApisByProductId(GENERIC_CHAT_APIM_PRODUCT_ID)
-  //       if (!data) {
-  //         throw new Error(`Failed to fetch APIs for product id: ${GENERIC_CHAT_APIM_PRODUCT_ID}`)
-  //       }
-
-  //       setApis(data.map((api: any) => ({ id: api.api_id, name: api.name })))
-  //     } catch (error) {
-  //       console.error('Error fetching APIs:', error)
-  //     }
-  //   }
-
-  //   fetchApis()
-  // }, [])
 
   useEffect(() => {
     try {
       const agent = agents.find(agent => agent.id === agentId);
       if (agent) {
         setAgentName(agent.name);
+        setAgentNotFound(false);
       } else {
         setAgentName(agentId); // Fallback to agentId if name not found
+        setAgentNotFound(true);
       }
     } catch (error) {
       console.error('Error fetching agent name:', error);
       setAgentName(agentId); // Fallback to agentId in case of error
+      setAgentNotFound(true);
     }
 
   }, [agentId, agents]);
+
+  if (agentNotFound) {
+    return (
+      <div className="flex flex-col h-full p-4">
+        <h1 className="text-2xl font-bold mb-4">Agent Not Found</h1>
+        <p>The agent with ID "{agentId}" does not exist. Please add a matching agent name as a product in API management.</p>
+        <br></br>
+        <p>Available agents will show up in the left navigation. By default, any product in API Management with the word "agent" in it, will be show in the menu.</p>
+        <p>Additionally, a named value of "{agentId}-instructions" (agent-name-instructions) in API Management, as the agents instructions.</p>
+      </div>
+    )
+  }
 
   return (
     <div className="flex flex-col h-full p-4">
@@ -257,15 +257,19 @@ export default function ChatPage() {
                         )}
                         <ReactMarkdown
                           remarkPlugins={[remarkGfm]}
+                          rehypePlugins={[rehypeRaw]}
                           components={{
                             p: ({ node, ...props }) => <p className="mb-2" {...props} />,
                             ul: ({ node, ...props }) => <ul className="list-disc pl-4 mb-2" {...props} />,
                             ol: ({ node, ...props }) => <ol className="list-decimal pl-4 mb-2" {...props} />,
                             li: ({ node, ...props }) => <li className="mb-1" {...props} />,
                             a: ({ node, ...props }) => <a className="text-blue-600 hover:underline" {...props} />,
+                            pre: ({ node, ...props }) => <pre className="bg-gray-100 p-2 rounded my-2" {...props} />,
+                            sup: ({ node, ...props }) => <sup className="align-super" {...props} />,
                             code: ({ node, ...props }) => <code className="block bg-gray-100 rounded p-2 my-2 whitespace-pre-wrap" {...props} />,
                             details: ({ node, ...props }) => <details className="mb-2" {...props} />,
                             summary: ({ node, ...props }) => <summary className="font-semibold cursor-pointer" {...props} />,
+                            img: ({ node, ...props }) => <img className="max-w-full h-auto" {...props} />
                           }}
                         >
                           {m.content}
