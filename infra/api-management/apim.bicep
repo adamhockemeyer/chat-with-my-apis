@@ -66,6 +66,62 @@ resource apimLogger 'Microsoft.ApiManagement/service/loggers@2023-09-01-preview'
   }
 }
 
+resource apimlogToAnalytics 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = {
+  scope: apimService
+  name: 'logToAnalytics'
+  properties: {
+    workspaceId: appInsights.properties.WorkspaceResourceId
+    logs: [
+      {
+        category: 'GatewayLogs'
+        enabled: true
+      }
+    ]
+    metrics: [
+      {
+        category: 'AllMetrics'
+        enabled: true
+      }
+    ]
+  }
+}
+
+var logSettings = {
+  headers: [
+    'Content-type'
+    'User-agent'
+    'x-ms-region'
+    'x-ratelimit-remaining-tokens'
+    'x-ratelimit-remaining-requests'
+  ]
+  body: { bytes: 8192 }
+}
+
+resource apimDiagnostic 'Microsoft.ApiManagement/service/diagnostics@2024-06-01-preview' = {
+  parent: apimService
+  name: 'applicationinsights'
+  properties: {
+    alwaysLog: 'allErrors'
+    httpCorrelationProtocol: 'W3C'
+    logClientIp: true
+    loggerId: apimLogger.id
+    metrics: true
+    verbosity: 'verbose'
+    sampling: {
+      samplingType: 'fixed'
+      percentage: 100
+    }
+    frontend: {
+      request: logSettings
+      response: logSettings
+    }
+    backend: {
+      request: logSettings
+      response: logSettings
+    }
+  }
+}
+
 resource roleAssignmentsResource 'Microsoft.Authorization/roleAssignments@2022-04-01' = [
   for roleAssignment in roleAssignments: if(length(roleAssignment) > 0 ) {
     name: guid(roleAssignment.principalId, roleAssignment.roleDefinitionId, apimService.id)

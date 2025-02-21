@@ -70,7 +70,7 @@ var policy1 = '''
     </backend>
     <outbound>
         <base />
-        <cache-store duration="120" cache-response="true" />
+        <cache-store duration="30" cache-response="true" />
     </outbound>
     <on-error>
         <base />

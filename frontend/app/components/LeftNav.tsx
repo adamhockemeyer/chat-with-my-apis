@@ -1,3 +1,5 @@
+"use client"
+
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -5,7 +7,9 @@ import { MessageSquare, Bot, PlusCircle, FileText, ChevronDown, ChevronRight } f
 import { Button } from "@/components/ui/button"
 import { AddAgentModal } from './AddAgentModal'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog"
-import { fetchAgentProducts, fetchApisByProductId, ProductResponse } from "../actions/apis"
+//import { fetchAgentProducts, fetchApisByProductId, ProductResponse } from "../actions/apis"
+import { useAgents } from '../context/AgentsContext'
+import Skeleton from './Skeleton'
 
 
 type API = {
@@ -21,69 +25,16 @@ type Agent = {
   apis: string[]
 }
 
-const GENERIC_CHAT_APIM_PRODUCT_ID = process.env.GENERIC_CHAT_APIM_PRODUCT_ID ?? 'generic-chat-agent';
 
 export default function LeftNav() {
-  const [agents, setAgents] = useState<Agent[]>([])
+  //const [agents, setAgents] = useState<Agent[]>([])
+  const { agents, setAgents } = useAgents()
   const [isAddAgentModalOpen, setIsAddAgentModalOpen] = useState(false)
   const [agentToRemove, setAgentToRemove] = useState<string | null>(null)
   const [availableAPIs, setAvailableAPIs] = useState<API[]>([])
   const pathname = usePathname()
   const [expandedAgents, setExpandedAgents] = useState<string[]>([])
 
-  useEffect(() => {
-    async function fetchAPIs() {
-      try {
-        //const response = await fetch('/api/apis')
-        const response = await fetchApisByProductId(GENERIC_CHAT_APIM_PRODUCT_ID)
-        if (!response) {
-          throw new Error('Failed to fetch APIs')
-        }
-        const data = response.map((api) => ({
-          id: api.api_id,
-          name: api.name,
-        }))
-        setAvailableAPIs(data)
-      } catch (error) {
-        console.error('Error fetching APIs:', error)
-      }
-    }
-
-    fetchAPIs()
-  }, [])
-
-  useEffect(() => {
-    async function fetchAgents() {
-      try {
-        //const response = await fetch('/api/agents')
-        const response = await fetchAgentProducts()
-        if (!response) {
-          throw new Error('Failed to fetch agents')
-        }
-        //const data = await response.json()
-        setAgents([
-          {
-            id: 'general',
-            name: 'General Chat',
-            description: 'A general-purpose chatbot for various topics.',
-            icon: <MessageSquare size={20} />,
-            apis: []
-          },
-          ...response.map((product: ProductResponse) => ({
-            id: product.product_id,
-            name: product.name,
-            description: 'Agent description',
-            icon: <Bot size={20} />,
-            apis: []
-          }))
-        ])
-      } catch (error) {
-        console.error('Error fetching agents:', error)
-      }
-    }
-
-    fetchAgents()
-  }, [])
 
   const handleAddAgent = (newAgent: Omit<Agent, 'icon'>) => {
     const agentWithIcon: Agent = {
@@ -109,58 +60,42 @@ export default function LeftNav() {
   return (
     <nav className="w-64 bg-gray-100 p-4 h-full overflow-y-auto flex flex-col">
       <ul className="space-y-2 flex-grow">
-        {agents.map((agent) => (
-          <li key={agent.id}>
-            <div 
-              className={`flex items-center justify-between text-gray-700 p-2 rounded-lg font-medium hover:bg-gray-200 ${
-                pathname === `/chat/${agent.id}` ? 'bg-blue-100 text-blue-800' : ''
-              }`}
-            >
-              <Link 
-                href={`/chat/${agent.id}`}
-                className="flex items-center space-x-3 flex-grow"
+        {agents.length === 0 ? (
+          <>
+            <Skeleton />
+            <Skeleton />
+            <Skeleton />
+          </>
+        ) : (
+          agents.map((agent) => (
+            <li key={agent.id}>
+              <div
+                className={`flex items-center justify-between text-gray-700 p-2 rounded-lg font-medium hover:bg-gray-200 ${pathname === `/chat/${agent.id}` ? 'bg-blue-100 text-blue-800' : ''
+                  }`}
               >
-                {agent.icon}
-                <span>{agent.name}</span>
-              </Link>
-              {agent.id !== 'general' && (
-                <button
-                  onClick={(e) => {
-                    e.preventDefault()
-                    toggleAgentExpansion(agent.id)
-                  }}
-                  className="text-gray-500 hover:text-gray-700"
+                <Link
+                  href={`/chat/${agent.id}`}
+                  className="flex items-center space-x-3 flex-grow"
                 >
-                  {expandedAgents.includes(agent.id) ? (
-                    <ChevronDown size={20} />
-                  ) : (
-                    <ChevronRight size={20} />
-                  )}
-                </button>
-              )}
-            </div>
-            {agent.id !== 'general' && expandedAgents.includes(agent.id) && (
-              <button
-                onClick={() => setAgentToRemove(agent.id)}
-                className="text-red-500 text-xs hover:text-red-700 mt-1 ml-8"
-              >
-                Remove Agent
-              </button>
-            )}
-          </li>
-        ))}
+                  {agent.icon}
+                  <span>{agent.name}</span>
+                </Link>
+              </div>
+            </li>
+          ))
+        )}
       </ul>
       <div className="mt-auto pt-4 border-t border-gray-200 space-y-4">
-        <Button variant="outline" className="w-full justify-start" onClick={() => setIsAddAgentModalOpen(true)}>
+        {/* <Button variant="outline" className="w-full justify-start" onClick={() => setIsAddAgentModalOpen(true)}>
           <PlusCircle size={16} className="mr-2" />
           Add Agent
-        </Button>
+        </Button> */}
         <Link href="/terms-of-use" className="flex items-center text-sm text-gray-600 hover:text-gray-800">
           <FileText size={16} className="mr-2" />
           Terms of Use
         </Link>
       </div>
-      <AddAgentModal
+      {/* <AddAgentModal
         isOpen={isAddAgentModalOpen}
         onClose={() => setIsAddAgentModalOpen(false)}
         onAddAgent={handleAddAgent}
@@ -179,7 +114,7 @@ export default function LeftNav() {
             <Button variant="destructive" onClick={() => agentToRemove && handleRemoveAgent(agentToRemove)}>Remove</Button>
           </DialogFooter>
         </DialogContent>
-      </Dialog>
+      </Dialog> */}
     </nav>
   )
 }

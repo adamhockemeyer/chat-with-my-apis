@@ -1,21 +1,21 @@
-import logging
-import logging.config
+
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from contextlib import asynccontextmanager
+#from fastapi import FastAPI
+import fastapi
+from app.routers import liveness, readiness, startup, apim, chat
 
-from fastapi import FastAPI
+# OTel Logging Configuration
+import app.otel_app_insights_logging
 
-import app.temp_logging
-
-from app.routers import chat
-from app.routers import liveness, readiness, startup, apim
 
 @asynccontextmanager
-async def lifespan(_: FastAPI):
+async def lifespan(_: fastapi.FastAPI):
     yield
 
-app = FastAPI(lifespan=lifespan, debug=True)
+app = fastapi.FastAPI(lifespan=lifespan, debug=True, title="API Chat", version="1.0.0")
 
-logging.basicConfig(level=logging.DEBUG)
+#FastAPIInstrumentor.instrument_app(app)
 
 app.include_router(chat.router, prefix="/v1")
 app.include_router(liveness.router, prefix="/v1")

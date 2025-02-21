@@ -7,7 +7,7 @@ from opentelemetry import trace
 from app.services.apim import fetch_apis_by_product, fetch_products_name_contains
 from app.config import get_settings
 
-logger = logging.getLogger("uvicorn.error")
+logger = logging.getLogger(__name__)
 tracer = trace.get_tracer(__name__)
 
 router = APIRouter()
@@ -18,7 +18,7 @@ async def get_apis(product_id: str):
     apis = []
     logger.info(f"  ⚡Fetching APIs for product '{product_id}'")
     try:
-        product_apis = fetch_apis_by_product(product_id)
+        product_apis = await fetch_apis_by_product(product_id)
         for api in product_apis:
             apis.append(ApiResponse(
                 api_id=api['name'],
@@ -36,7 +36,7 @@ async def get_agent_products():
     logger.info("  ⚡Fetching products that contain 'agent'")
     try:
 
-        products_data = fetch_products_name_contains("agent")
+        products_data = await fetch_products_name_contains("agent")
         results = []
         for product in products_data:
             product_id = product.get("name", "")

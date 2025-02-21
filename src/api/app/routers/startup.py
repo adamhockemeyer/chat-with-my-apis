@@ -9,7 +9,7 @@ from ..config import get_settings
 tracer = trace.get_tracer(__name__)
 
 router = APIRouter()
-logger = logging.getLogger("uvicorn.error")
+logger = logging.getLogger(__name__)
 
 
 @tracer.start_as_current_span(name="startup")

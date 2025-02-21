@@ -5,7 +5,7 @@ from semantic_kernel.agents.open_ai import AzureAssistantAgent
 
 from app.config import get_settings
 
-logger = logging.getLogger("uvicorn.error")
+logger = logging.getLogger(__name__)
 
 async def create_apim_agent(kernel: Kernel, agent_name: str = "apim-agent", instructions: str = None) -> AzureAssistantAgent:
     if instructions is None:

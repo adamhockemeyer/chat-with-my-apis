@@ -1,0 +1,33 @@
+{
+    "name": "docker-codespaces",
+    // The Docker image that you will be using as a development container
+    "image": "mcr.microsoft.com/devcontainers/base:bullseye",
+    // Environment variables to set in the development container
+    "containerEnv": {
+        "SHELL": "/bin/zsh"
+    },
+    // Available features: https://containers.dev/features
+    "features": {
+        "ghcr.io/devcontainers/features/azure-cli:1": {},
+        "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+        "ghcr.io/azure/azure-dev/azd:0": {},
+        "ghcr.io/devcontainers/features/python": {
+            "version": "3.13"
+        },
+        "ghcr.io/devcontainers/features/node:1": {}
+    },
+    // Extenstions to install: separate lists for VS Code and Codespaces
+    "customizations": {
+        "vscode": {
+            "extensions": [
+                "github.copilot"
+            ]
+        },
+        "codespaces": {
+            "extensions": [
+                "github.copilot"
+            ]
+        }
+    },
+    "remoteUser": "vscode"
+}

@@ -4,7 +4,23 @@ services:
     project: ./src/api
     language: py
     host: containerapp
+    docker:
+      remoteBuild: true
   web:
     project: ./frontend
     language: ts
     host: containerapp
+    docker:
+      remoteBuild: true
+  adventureworks-api:
+    project: ./src/adventureworks-api
+    language: python
+    host: containerapp
+    docker:
+      remoteBuild: true
+  adventureworks-web:
+    project: ./src/adventureworks-web
+    language: csharp
+    host: containerapp
+    docker:
+      remoteBuild: true

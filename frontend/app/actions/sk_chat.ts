@@ -1,6 +1,8 @@
 'use server';
 
+import { Output } from 'ai';
 import { createStreamableValue } from 'ai/rsc';
+import { trace } from 'console';
 
 export async function chat(input: string, threadId: string, agentId: string, product_id: string | null, api_ids: string[] | null) {
     'use server';
@@ -32,41 +34,37 @@ export async function chat(input: string, threadId: string, agentId: string, pro
         threadId = threadData.thread_id;
     }
 
-    const stream = createStreamableValue('');
+    const response = await fetch(`${baseUrl}/v1/chat`, {
+        method: 'POST',
+        headers: {
+            'Accept': 'text/event-stream',
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            content: input,
+            thread_id: threadId,
+            agent_id: agentId,
+            product_id: product_id,
+            api_ids: api_ids
+        }),
+    });
 
+    // Grab the trace ID if available
+    const stream = createStreamableValue('');
+    const traceId = response.headers.get('x-trace-id') || null;
     (async () => {
         try {
-            const response = await fetch(`${baseUrl}/v1/chat`, {
-                method: 'POST',
-                headers: {
-                    'Accept': 'text/event-stream',
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    agent_id: agentId,
-                    thread_id: threadId,
-                    content: input,
-                    product_id: product_id,
-                    api_ids: api_ids,
-                }),
-            });
-
-            if (!response.body) {
-                throw new Error('Response does not have a body');
-            }
-
-            console.log('Response:', response);
-
             const reader = response.body?.getReader();
             const decoder = new TextDecoder();
+            if (reader) {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
 
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                const chunk = decoder.decode(value, { stream: true });
-                // Handle the chunk (e.g., parse or update UI)
-                stream.update(chunk);
+                    const chunk = decoder.decode(value, { stream: true });
+                    // Handle the chunk (e.g., parse or update UI)
+                    stream.update(chunk);
+                }
             }
 
             stream.done();
@@ -78,9 +76,11 @@ export async function chat(input: string, threadId: string, agentId: string, pro
     })();
 
     return {
+        //output: stream.value,
         output: stream.value,
         threadId: threadId,
         agentId: agentId,
+        traceId: traceId,
     }
 }
 
