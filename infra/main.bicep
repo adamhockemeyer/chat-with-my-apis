@@ -158,6 +158,10 @@ module apimApisOpenAI 'api-management/apis/openai-api.bicep' = {
     backendName: apimBackendsOpenAI.outputs.backendPoolName
     apimLoggerName: apim.outputs.loggerName
   }
+  dependsOn: [
+    apimNameValueOpenAIPool
+    apimNamedValueOpenAINonLoadBalancedPool
+  ]
 }
 
 module maps 'maps/maps.bicep' = {
@@ -191,6 +195,9 @@ module apimApisMaps 'api-management/apis/maps-api.bicep' = {
   params: {
     serviceName: apim.outputs.name
   }
+  dependsOn: [
+    apimNamedValueMapsId
+  ]
 }
 
 // Generic Chat Agent Product
@@ -219,14 +226,7 @@ module apimNameValue_generic_chat_agent_instructions 'api-management/apim-nameva
   }
 }
 
-module apimApisAdventureWorks 'api-management/apis/adventureworks-api.bicep' = {
-  name: '${prefix}-apim-aw-api'
-  params: {
-    serviceName: apim.outputs.name
-  }
-}
-
-module namedValueAPIMServiceUrl 'api-management/apim-namevalue.bicep' = {
+module apimNamedValueAdventureWorksAPI 'api-management/apim-namevalue.bicep' = {
   name: '${prefix}-apim-namedvalue-adventureworks-service-url'
   params: {
     apiManagementServiceName: apimService.name
@@ -234,6 +234,16 @@ module namedValueAPIMServiceUrl 'api-management/apim-namevalue.bicep' = {
     displayName: 'Adventureworks-API-Service-URL'
     value: '${adventureWorksDABAPIContainerApp.outputs.uri}/api'
   }
+}
+
+module apimApisAdventureWorks 'api-management/apis/adventureworks-api.bicep' = {
+  name: '${prefix}-apim-aw-api'
+  params: {
+    serviceName: apim.outputs.name
+  }
+  dependsOn: [
+    apimNamedValueAdventureWorksAPI
+  ]
 }
 
 // Generic Chat Agent Product
